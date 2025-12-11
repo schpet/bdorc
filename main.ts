@@ -3,7 +3,26 @@
  */
 
 import { Command } from "@cliffy/command";
+import { Confirm } from "@cliffy/prompt";
+import { type BeadsIssue, getIssuesByStatus } from "./src/beads.ts";
 import { runOrchestrator } from "./src/mod.ts";
+
+/**
+ * Check for in_progress issues from a previous run and prompt user to resume
+ */
+async function checkStaleIssues(
+  workingDirectory: string,
+): Promise<BeadsIssue[]> {
+  try {
+    const inProgress = await getIssuesByStatus("in_progress", {
+      workingDirectory,
+    });
+    return inProgress;
+  } catch {
+    // bd might not be initialized, that's ok
+    return [];
+  }
+}
 
 const command = new Command()
   .name("bdorc")
@@ -23,9 +42,43 @@ const command = new Command()
     "--dangerously-skip-permissions",
     "Skip permission prompts (CAUTION!)",
   )
+  .option(
+    "--poll-interval <ms:number>",
+    "Polling interval when idle (ms)",
+    { default: 1000 },
+  )
+  .option("-y, --yes", "Skip confirmation prompts")
   .action(async (options) => {
     console.log("bdorc - Beads orchestrator for Claude Code");
     console.log("==========================================");
+
+    // Check for stale in_progress issues
+    const staleIssues = await checkStaleIssues(options.dir);
+
+    if (staleIssues.length > 0 && !options.yes) {
+      console.log("\nFound in_progress issues from a previous run:");
+      for (const issue of staleIssues) {
+        console.log(`  ${issue.id}: ${issue.title}`);
+      }
+
+      const resume = await Confirm.prompt({
+        message: "Resume these issues?",
+        default: true,
+      });
+
+      if (!resume) {
+        console.log("Resetting issues to open status...");
+        const { updateStatus } = await import("./src/beads.ts");
+        for (const issue of staleIssues) {
+          await updateStatus(issue.id, "open", {
+            workingDirectory: options.dir,
+          });
+          console.log(`  Reset ${issue.id} to open`);
+        }
+      }
+      // If resume=true, we leave them as in_progress and the orchestrator
+      // will pick them up with their existing notes/context
+    }
 
     try {
       const result = await runOrchestrator({
@@ -36,6 +89,8 @@ const command = new Command()
         verbose: !options.quiet,
         stream: options.stream ?? false,
         dangerouslySkipPermissions: options.dangerouslySkipPermissions ?? false,
+        pollIntervalMs: options.pollInterval,
+        resumeIssues: staleIssues.length > 0 ? staleIssues : undefined,
       });
 
       if (result.failed.length > 0) {

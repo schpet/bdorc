@@ -61,11 +61,27 @@ Deno.test({
   async fn() {
     const testDir = await createTestDir();
     await setupTestProject(testDir);
+    const config: GatesConfig = {
+      workingDirectory: testDir,
+      testCommand: ["deno", "test"],
+    };
+
+    const result = await runTests(config);
+    assertEquals(result?.name, "tests");
+    assertEquals(result?.passed, true);
+
+    await cleanup(testDir);
+  },
+});
+
+Deno.test({
+  name: "gates: runTests returns null when not configured",
+  async fn() {
+    const testDir = await createTestDir();
     const config: GatesConfig = { workingDirectory: testDir };
 
     const result = await runTests(config);
-    assertEquals(result.name, "tests");
-    assertEquals(result.passed, true);
+    assertEquals(result, null);
 
     await cleanup(testDir);
   },
@@ -82,8 +98,8 @@ Deno.test({
     };
 
     const result = await runTypecheck(config);
-    assertEquals(result.name, "typecheck");
-    assertEquals(result.passed, true);
+    assertEquals(result?.name, "typecheck");
+    assertEquals(result?.passed, true);
 
     await cleanup(testDir);
   },
@@ -94,11 +110,14 @@ Deno.test({
   async fn() {
     const testDir = await createTestDir();
     await setupTestProject(testDir);
-    const config: GatesConfig = { workingDirectory: testDir };
+    const config: GatesConfig = {
+      workingDirectory: testDir,
+      formatCommand: ["deno", "fmt", "--check"],
+    };
 
     const result = await runFormat(config);
-    assertEquals(result.name, "format");
-    assertEquals(result.passed, true);
+    assertEquals(result?.name, "format");
+    assertEquals(result?.passed, true);
 
     await cleanup(testDir);
   },
@@ -109,11 +128,14 @@ Deno.test({
   async fn() {
     const testDir = await createTestDir();
     await setupTestProject(testDir);
-    const config: GatesConfig = { workingDirectory: testDir };
+    const config: GatesConfig = {
+      workingDirectory: testDir,
+      lintCommand: ["deno", "lint"],
+    };
 
     const result = await runLint(config);
-    assertEquals(result.name, "lint");
-    assertEquals(result.passed, true);
+    assertEquals(result?.name, "lint");
+    assertEquals(result?.passed, true);
 
     await cleanup(testDir);
   },
@@ -126,13 +148,30 @@ Deno.test({
     await setupTestProject(testDir);
     const config: GatesConfig = {
       workingDirectory: testDir,
+      testCommand: ["deno", "test"],
       typecheckCommand: ["deno", "check", "test_file.ts"],
+      formatCommand: ["deno", "fmt", "--check"],
+      lintCommand: ["deno", "lint"],
     };
 
     const { passed, results } = await runAllGates(config);
     assertEquals(passed, true);
     assertEquals(results.length, 4);
     assertEquals(results.every((r) => r.passed), true);
+
+    await cleanup(testDir);
+  },
+});
+
+Deno.test({
+  name: "gates: runAllGates passes when no gates configured",
+  async fn() {
+    const testDir = await createTestDir();
+    const config: GatesConfig = { workingDirectory: testDir };
+
+    const { passed, results } = await runAllGates(config);
+    assertEquals(passed, true);
+    assertEquals(results.length, 0);
 
     await cleanup(testDir);
   },

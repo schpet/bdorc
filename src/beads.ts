@@ -122,3 +122,17 @@ export async function addNotes(
   }
   return result.result || result;
 }
+
+/**
+ * Get issues by status
+ */
+export async function getIssuesByStatus(
+  status: "open" | "in_progress" | "blocked" | "closed",
+  config: BeadsConfig,
+): Promise<BeadsIssue[]> {
+  const output = await runBdCommand(["list", "--status", status], config);
+  if (!output.trim()) {
+    return [];
+  }
+  return JSON.parse(output);
+}

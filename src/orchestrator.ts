@@ -11,12 +11,16 @@ import {
   updateStatus,
 } from "./beads.ts";
 import {
+  buildFixPrompt,
   buildIssuePrompt,
+  buildResumePrompt,
   type ClaudeConfig,
+  type GateFailure,
   runClaudeCode,
 } from "./claude.ts";
 import {
   formatGateResults,
+  hasGatesConfigured,
   loadGatesConfig,
   runAllGates,
 } from "./gates.ts";
@@ -29,6 +33,8 @@ export interface OrchestratorConfig {
   verbose?: boolean;
   stream?: boolean;
   dangerouslySkipPermissions?: boolean;
+  pollIntervalMs?: number;
+  resumeIssues?: BeadsIssue[];
 }
 
 export interface OrchestratorResult {
@@ -64,6 +70,7 @@ export async function runOrchestrator(
 
   const maxIterations = config.maxIterations ?? 100;
   const verbose = config.verbose ?? true;
+  const pollIntervalMs = config.pollIntervalMs ?? 1000;
 
   // Load gates config from .config/bdorc.toml (or use defaults)
   const gatesConfig = await loadGatesConfig(config.workingDirectory);
@@ -75,49 +82,70 @@ export async function runOrchestrator(
 
   log(`Starting orchestrator in ${config.workingDirectory}`, verbose);
 
-  // Log if custom config was loaded
-  if (
-    gatesConfig.testCommand || gatesConfig.typecheckCommand ||
-    gatesConfig.formatCommand || gatesConfig.lintCommand
-  ) {
-    log(`Loaded custom gates config from .config/bdorc.toml`, verbose);
+  // Warn if no gates configured
+  if (!hasGatesConfigured(gatesConfig)) {
+    console.log(
+      "%cWarning: No quality gates configured. Create .config/bdorc.toml to add gates.",
+      "color: yellow",
+    );
+  } else {
+    log(`Loaded gates config from .config/bdorc.toml`, verbose);
   }
   log(`Max iterations: ${maxIterations}`, verbose);
+
+  // Track issues to resume (consumed as we process them)
+  const resumeQueue = config.resumeIssues ? [...config.resumeIssues] : [];
 
   while (iteration < maxIterations) {
     iteration++;
     log(`\n--- Iteration ${iteration} ---`, verbose);
 
-    // Get ready work
-    let readyWork: BeadsIssue[];
-    try {
-      readyWork = await getReadyWork(beadsConfig);
-    } catch (error) {
-      log(`Error getting ready work: ${error}`, verbose);
-      break;
-    }
+    let issue: BeadsIssue;
+    let isResume = false;
 
-    if (readyWork.length === 0) {
-      log("No ready work found. Orchestrator complete.", verbose);
-      break;
-    }
+    // First, process any resume issues
+    if (resumeQueue.length > 0) {
+      issue = resumeQueue.shift()!;
+      isResume = true;
+      log(`Resuming: ${issue.id} - ${issue.title}`, verbose);
+    } else {
+      // Get ready work
+      let readyWork: BeadsIssue[];
+      try {
+        readyWork = await getReadyWork(beadsConfig);
+      } catch (error) {
+        log(`Error getting ready work: ${error}`, verbose);
+        break;
+      }
 
-    // Pick first issue (highest priority)
-    const issue = readyWork[0];
-    log(`Working on: ${issue.id} - ${issue.title}`, verbose);
+      if (readyWork.length === 0) {
+        log(
+          `No ready work found. Waiting ${pollIntervalMs / 1000}s... (Ctrl+C to quit)`,
+          verbose,
+        );
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        continue;
+      }
 
-    // Claim the issue
-    try {
-      await updateStatus(issue.id, "in_progress", beadsConfig);
-      log(`Claimed issue ${issue.id}`, verbose);
-    } catch (error) {
-      log(`Error claiming issue: ${error}`, verbose);
-      failed.push(issue.id);
-      continue;
+      // Pick first issue (highest priority)
+      issue = readyWork[0];
+      log(`Working on: ${issue.id} - ${issue.title}`, verbose);
+
+      // Claim the issue
+      try {
+        await updateStatus(issue.id, "in_progress", beadsConfig);
+        log(`Claimed issue ${issue.id}`, verbose);
+      } catch (error) {
+        log(`Error claiming issue: ${error}`, verbose);
+        failed.push(issue.id);
+        continue;
+      }
     }
 
     // Build prompt and run Claude Code
-    const prompt = buildIssuePrompt(issue);
+    const prompt = isResume
+      ? buildResumePrompt(issue)
+      : buildIssuePrompt(issue);
     log(`Running Claude Code...`, verbose);
 
     const claudeResult = await runClaudeCode(prompt, claudeConfig);
@@ -144,23 +172,51 @@ export async function runOrchestrator(
 
     if (!gatesResult.passed) {
       gateFailures++;
-      log(`Quality gates failed for ${issue.id}`, verbose);
+      log(`Quality gates failed for ${issue.id}, running fix...`, verbose);
 
-      // Add notes about what failed
-      const failedGates = gatesResult.results
+      // Build fix prompt with failure details
+      const failures: GateFailure[] = gatesResult.results
         .filter((r) => !r.passed)
-        .map((r) => r.name)
-        .join(", ");
-      await addNotes(
-        issue.id,
-        `Quality gates failed: ${failedGates}. Claude output: ${
-          claudeResult.output.slice(0, 500)
-        }`,
-        beadsConfig,
-      );
+        .map((r) => ({ name: r.name, output: r.output, error: r.error }));
 
-      // Keep issue in_progress for retry
-      continue;
+      const fixPrompt = buildFixPrompt(issue.id, failures);
+      log(`Running Claude Code to fix failures...`, verbose);
+
+      const fixResult = await runClaudeCode(fixPrompt, claudeConfig);
+
+      if (!fixResult.success) {
+        log(`Claude Code fix failed: ${fixResult.error}`, verbose);
+        await addNotes(
+          issue.id,
+          `Fix attempt failed (exit ${fixResult.exitCode}): ${fixResult.error.slice(0, 500)}`,
+          beadsConfig,
+        );
+        // Keep in_progress for next iteration to retry
+        continue;
+      }
+
+      log(`Fix completed, re-running quality gates...`, verbose);
+
+      // Re-run gates after fix
+      const retryResult = await runAllGates(gatesConfig);
+      log(formatGateResults(retryResult.results), verbose);
+
+      if (!retryResult.passed) {
+        // Still failing - add notes and continue to next iteration
+        const stillFailing = retryResult.results
+          .filter((r) => !r.passed)
+          .map((r) => r.name)
+          .join(", ");
+        await addNotes(
+          issue.id,
+          `Gates still failing after fix attempt: ${stillFailing}`,
+          beadsConfig,
+        );
+        continue;
+      }
+
+      // Fix worked! Fall through to close the issue
+      log(`Fix successful!`, verbose);
     }
 
     // Success - close the issue

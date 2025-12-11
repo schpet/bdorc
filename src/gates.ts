@@ -124,14 +124,18 @@ export async function runLint(config: GatesConfig): Promise<GateResult> {
 export async function runAllGates(
   config: GatesConfig,
 ): Promise<{ passed: boolean; results: GateResult[] }> {
-  const results = await Promise.all([
+  const allResults = await Promise.all([
     runTests(config),
     runTypecheck(config),
     runFormat(config),
     runLint(config),
   ]);
 
-  const passed = results.every((r) => r.passed);
+  // Filter out null results (unconfigured gates)
+  const results = allResults.filter((r): r is GateResult => r !== null);
+
+  // If no gates configured, consider it passed
+  const passed = results.length === 0 || results.every((r) => r.passed);
 
   return { passed, results };
 }
