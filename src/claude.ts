@@ -14,6 +14,7 @@ export interface ClaudeConfig {
   model?: string;
   maxTurns?: number;
   dangerouslySkipPermissions?: boolean;
+  stream?: boolean;
 }
 
 /**
@@ -40,6 +41,10 @@ export async function runClaudeCode(
 
   args.push(prompt);
 
+  if (config.stream) {
+    return runClaudeCodeStreaming(args, config.workingDirectory);
+  }
+
   const command = new Deno.Command("claude", {
     args,
     cwd: config.workingDirectory,
@@ -51,6 +56,65 @@ export async function runClaudeCode(
 
   const output = new TextDecoder().decode(stdout);
   const error = new TextDecoder().decode(stderr);
+
+  return {
+    success: code === 0,
+    output,
+    error,
+    exitCode: code,
+  };
+}
+
+/**
+ * Run Claude Code with streaming output to console
+ */
+async function runClaudeCodeStreaming(
+  args: string[],
+  cwd: string,
+): Promise<ClaudeResult> {
+  const command = new Deno.Command("claude", {
+    args,
+    cwd,
+    stdout: "piped",
+    stderr: "piped",
+  });
+
+  const process = command.spawn();
+
+  // Collect output while streaming
+  let output = "";
+  let error = "";
+
+  // Stream stdout
+  const stdoutReader = process.stdout.getReader();
+  const stderrReader = process.stderr.getReader();
+  const decoder = new TextDecoder();
+
+  // Read both streams concurrently
+  const readStdout = async () => {
+    while (true) {
+      const { done, value } = await stdoutReader.read();
+      if (done) break;
+      const text = decoder.decode(value);
+      output += text;
+      Deno.stdout.writeSync(new TextEncoder().encode(text));
+    }
+  };
+
+  const readStderr = async () => {
+    while (true) {
+      const { done, value } = await stderrReader.read();
+      if (done) break;
+      const text = decoder.decode(value);
+      error += text;
+      Deno.stderr.writeSync(new TextEncoder().encode(text));
+    }
+  };
+
+  // Wait for all streams to complete
+  await Promise.all([readStdout(), readStderr()]);
+
+  const { code } = await process.status;
 
   return {
     success: code === 0,

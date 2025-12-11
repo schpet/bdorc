@@ -9,6 +9,7 @@
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1",
-    "@std/toml": "jsr:@std/toml@1"
+    "@std/toml": "jsr:@std/toml@1",
+    "@cliffy/command": "jsr:@cliffy/command@1"
   }
 }
