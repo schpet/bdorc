@@ -32,7 +32,7 @@ const DEFAULT_DENO_CONFIG: Required<
 async function runGate(
   name: string,
   command: string[],
-  workingDirectory: string
+  workingDirectory: string,
 ): Promise<GateResult> {
   const [cmd, ...args] = command;
   const process = new Deno.Command(cmd, {
@@ -64,7 +64,8 @@ export async function runTests(config: GatesConfig): Promise<GateResult> {
  * Run type checking
  */
 export async function runTypecheck(config: GatesConfig): Promise<GateResult> {
-  const command = config.typecheckCommand || DEFAULT_DENO_CONFIG.typecheckCommand;
+  const command = config.typecheckCommand ||
+    DEFAULT_DENO_CONFIG.typecheckCommand;
   return runGate("typecheck", command, config.workingDirectory);
 }
 
@@ -88,7 +89,7 @@ export async function runLint(config: GatesConfig): Promise<GateResult> {
  * Run all quality gates
  */
 export async function runAllGates(
-  config: GatesConfig
+  config: GatesConfig,
 ): Promise<{ passed: boolean; results: GateResult[] }> {
   const results = await Promise.all([
     runTests(config),

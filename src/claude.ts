@@ -20,7 +20,7 @@ export interface ClaudeConfig {
  */
 export async function runClaudeCode(
   prompt: string,
-  config: ClaudeConfig
+  config: ClaudeConfig,
 ): Promise<ClaudeResult> {
   const args = ["--print"];
 
@@ -85,7 +85,7 @@ export function buildIssuePrompt(issue: {
     "- Implement what's described above",
     "- Follow existing code patterns",
     "- Ensure code compiles and tests pass",
-    "- Keep changes focused on this issue"
+    "- Keep changes focused on this issue",
   );
 
   return parts.join("\n");

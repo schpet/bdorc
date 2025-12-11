@@ -1,13 +1,13 @@
 import { assertEquals } from "@std/assert";
 import {
-  runTests,
-  runTypecheck,
+  formatGateResults,
+  type GateResult,
+  type GatesConfig,
+  runAllGates,
   runFormat,
   runLint,
-  runAllGates,
-  formatGateResults,
-  type GatesConfig,
-  type GateResult,
+  runTests,
+  runTypecheck,
 } from "./gates.ts";
 
 // Create a minimal Deno project for testing
@@ -20,7 +20,7 @@ async function setupTestProject() {
     `export function hello(): string {
   return "hello";
 }
-`
+`,
   );
 
   // Create a passing test
@@ -32,7 +32,7 @@ import { hello } from "./test_file.ts";
 Deno.test("hello returns hello", () => {
   assertEquals(hello(), "hello");
 });
-`
+`,
   );
 
   // Create deno.json
@@ -42,7 +42,7 @@ Deno.test("hello returns hello", () => {
       imports: {
         "@std/assert": "jsr:@std/assert@1",
       },
-    })
+    }),
   );
 }
 

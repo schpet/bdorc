@@ -28,7 +28,7 @@ export interface BeadsConfig {
  */
 async function runBdCommand(
   args: string[],
-  config: BeadsConfig
+  config: BeadsConfig,
 ): Promise<string> {
   const command = new Deno.Command("bd", {
     args: [...args, "--json"],
@@ -51,7 +51,7 @@ async function runBdCommand(
  * Get list of ready (unblocked) issues
  */
 export async function getReadyWork(
-  config: BeadsConfig
+  config: BeadsConfig,
 ): Promise<BeadsIssue[]> {
   const output = await runBdCommand(["ready"], config);
   if (!output.trim()) {
@@ -65,7 +65,7 @@ export async function getReadyWork(
  */
 export async function getIssue(
   id: string,
-  config: BeadsConfig
+  config: BeadsConfig,
 ): Promise<BeadsIssue> {
   const output = await runBdCommand(["show", id], config);
   return JSON.parse(output);
@@ -77,11 +77,11 @@ export async function getIssue(
 export async function updateStatus(
   id: string,
   status: "open" | "in_progress" | "blocked" | "closed",
-  config: BeadsConfig
+  config: BeadsConfig,
 ): Promise<BeadsIssue> {
   const output = await runBdCommand(
     ["update", id, "--status", status],
-    config
+    config,
   );
   // bd update returns the updated issue
   const result = JSON.parse(output);
@@ -94,7 +94,7 @@ export async function updateStatus(
 export async function closeIssue(
   id: string,
   reason: string,
-  config: BeadsConfig
+  config: BeadsConfig,
 ): Promise<void> {
   await runBdCommand(["close", id, "--reason", reason], config);
 }
@@ -105,11 +105,11 @@ export async function closeIssue(
 export async function addNotes(
   id: string,
   notes: string,
-  config: BeadsConfig
+  config: BeadsConfig,
 ): Promise<BeadsIssue> {
   const output = await runBdCommand(
     ["update", id, "--notes", notes],
-    config
+    config,
   );
   const result = JSON.parse(output);
   return result.result || result;

@@ -1,10 +1,10 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import {
-  getReadyWork,
-  getIssue,
-  updateStatus,
-  closeIssue,
   type BeadsConfig,
+  closeIssue,
+  getIssue,
+  getReadyWork,
+  updateStatus,
 } from "./beads.ts";
 
 // These tests require bd to be installed and a beads project initialized
@@ -127,7 +127,7 @@ Deno.test({
 
     await assertRejects(
       () => getIssue("nonexistent-123", config),
-      Error
+      Error,
     );
 
     await cleanup();

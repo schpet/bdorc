@@ -3,23 +3,19 @@
  */
 
 import {
+  addNotes,
+  type BeadsConfig,
+  type BeadsIssue,
+  closeIssue,
   getReadyWork,
   updateStatus,
-  closeIssue,
-  addNotes,
-  type BeadsIssue,
-  type BeadsConfig,
 } from "./beads.ts";
 import {
-  runClaudeCode,
   buildIssuePrompt,
   type ClaudeConfig,
+  runClaudeCode,
 } from "./claude.ts";
-import {
-  runAllGates,
-  formatGateResults,
-  type GatesConfig,
-} from "./gates.ts";
+import { formatGateResults, type GatesConfig, runAllGates } from "./gates.ts";
 
 export interface OrchestratorConfig {
   workingDirectory: string;
@@ -46,7 +42,7 @@ function log(message: string, verbose: boolean) {
  * Run the orchestrator loop
  */
 export async function runOrchestrator(
-  config: OrchestratorConfig
+  config: OrchestratorConfig,
 ): Promise<OrchestratorResult> {
   const beadsConfig: BeadsConfig = {
     workingDirectory: config.workingDirectory,
@@ -115,8 +111,10 @@ export async function runOrchestrator(
       log(`Claude Code failed: ${claudeResult.error}`, verbose);
       await addNotes(
         issue.id,
-        `Claude Code failed (exit ${claudeResult.exitCode}): ${claudeResult.error.slice(0, 500)}`,
-        beadsConfig
+        `Claude Code failed (exit ${claudeResult.exitCode}): ${
+          claudeResult.error.slice(0, 500)
+        }`,
+        beadsConfig,
       );
       failed.push(issue.id);
       continue;
@@ -140,8 +138,10 @@ export async function runOrchestrator(
         .join(", ");
       await addNotes(
         issue.id,
-        `Quality gates failed: ${failedGates}. Claude output: ${claudeResult.output.slice(0, 500)}`,
-        beadsConfig
+        `Quality gates failed: ${failedGates}. Claude output: ${
+          claudeResult.output.slice(0, 500)
+        }`,
+        beadsConfig,
       );
 
       // Keep issue in_progress for retry
@@ -153,7 +153,7 @@ export async function runOrchestrator(
       await closeIssue(
         issue.id,
         "Completed by orchestrator. All quality gates passed.",
-        beadsConfig
+        beadsConfig,
       );
       log(`Closed issue ${issue.id}`, verbose);
       completed.push(issue.id);

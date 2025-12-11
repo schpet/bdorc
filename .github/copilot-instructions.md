@@ -2,9 +2,11 @@
 
 ## Issue Tracking with bd
 
-This project uses **bd (beads)** for issue tracking - a Git-backed tracker designed for AI-supervised coding workflows.
+This project uses **bd (beads)** for issue tracking - a Git-backed tracker
+designed for AI-supervised coding workflows.
 
 **Key Features:**
+
 - Dependency-aware issue tracking
 - Auto-sync with Git via JSONL
 - AI-optimized CLI with JSON output
@@ -39,7 +41,8 @@ bd sync  # Force immediate export/commit/push
 1. **Check ready work**: `bd ready --json`
 2. **Claim task**: `bd update <id> --status in_progress`
 3. **Work on it**: Implement, test, document
-4. **Discover new work?** `bd create "Found bug" -p 1 --deps discovered-from:<parent-id> --json`
+4. **Discover new work?**
+   `bd create "Found bug" -p 1 --deps discovered-from:<parent-id> --json`
 5. **Complete**: `bd close <id> --reason "Done" --json`
 6. **Sync**: `bd sync` (flushes changes to git immediately)
 
@@ -60,13 +63,14 @@ bd sync  # Force immediate export/commit/push
 ### MCP Server (Recommended)
 
 For MCP-compatible clients (Claude Desktop, etc.), install the beads MCP server:
+
 - Install: `pip install beads-mcp`
 - Functions: `mcp__beads__ready()`, `mcp__beads__create()`, etc.
 
 ## CLI Help
 
-Run `bd <command> --help` to see all available flags for any command.
-For example: `bd create --help` shows `--parent`, `--deps`, `--assignee`, etc.
+Run `bd <command> --help` to see all available flags for any command. For
+example: `bd create --help` shows `--parent`, `--deps`, `--assignee`, etc.
 
 ## Important Rules
 
