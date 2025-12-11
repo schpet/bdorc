@@ -10,19 +10,21 @@ import {
 // These tests require bd to be installed and a beads project initialized
 // They are integration tests that interact with real bd CLI
 
-const TEST_DIR = Deno.makeTempDirSync({ prefix: "bdorc_test_" });
+async function createTestDir(): Promise<string> {
+  return await Deno.makeTempDir({ prefix: "bdorc_test_" });
+}
 
-async function initBeads() {
+async function initBeads(testDir: string) {
   const command = new Deno.Command("bd", {
     args: ["init", "--prefix", "test"],
-    cwd: TEST_DIR,
+    cwd: testDir,
   });
   await command.output();
 }
 
-async function cleanup() {
+async function cleanup(testDir: string) {
   try {
-    await Deno.remove(TEST_DIR, { recursive: true });
+    await Deno.remove(testDir, { recursive: true });
   } catch {
     // ignore
   }
@@ -31,26 +33,28 @@ async function cleanup() {
 Deno.test({
   name: "beads: getReadyWork returns empty array when no issues",
   async fn() {
-    await initBeads();
-    const config: BeadsConfig = { workingDirectory: TEST_DIR };
+    const testDir = await createTestDir();
+    await initBeads(testDir);
+    const config: BeadsConfig = { workingDirectory: testDir };
 
     const issues = await getReadyWork(config);
     assertEquals(issues, []);
 
-    await cleanup();
+    await cleanup(testDir);
   },
 });
 
 Deno.test({
   name: "beads: create and get issue",
   async fn() {
-    await initBeads();
-    const config: BeadsConfig = { workingDirectory: TEST_DIR };
+    const testDir = await createTestDir();
+    await initBeads(testDir);
+    const config: BeadsConfig = { workingDirectory: testDir };
 
     // Create an issue via bd CLI
     const createCmd = new Deno.Command("bd", {
       args: ["create", "Test issue", "-t", "task", "-p", "1", "--json"],
-      cwd: TEST_DIR,
+      cwd: testDir,
       stdout: "piped",
     });
     const { stdout } = await createCmd.output();
@@ -66,20 +70,21 @@ Deno.test({
     assertEquals(issue.title, "Test issue");
     assertEquals(issue.priority, 1);
 
-    await cleanup();
+    await cleanup(testDir);
   },
 });
 
 Deno.test({
   name: "beads: updateStatus changes issue status",
   async fn() {
-    await initBeads();
-    const config: BeadsConfig = { workingDirectory: TEST_DIR };
+    const testDir = await createTestDir();
+    await initBeads(testDir);
+    const config: BeadsConfig = { workingDirectory: testDir };
 
     // Create an issue
     const createCmd = new Deno.Command("bd", {
       args: ["create", "Status test", "--json"],
-      cwd: TEST_DIR,
+      cwd: testDir,
       stdout: "piped",
     });
     const { stdout } = await createCmd.output();
@@ -89,20 +94,21 @@ Deno.test({
     const updated = await updateStatus(created.id, "in_progress", config);
     assertEquals(updated.status, "in_progress");
 
-    await cleanup();
+    await cleanup(testDir);
   },
 });
 
 Deno.test({
   name: "beads: closeIssue closes the issue",
   async fn() {
-    await initBeads();
-    const config: BeadsConfig = { workingDirectory: TEST_DIR };
+    const testDir = await createTestDir();
+    await initBeads(testDir);
+    const config: BeadsConfig = { workingDirectory: testDir };
 
     // Create an issue
     const createCmd = new Deno.Command("bd", {
       args: ["create", "Close test", "--json"],
-      cwd: TEST_DIR,
+      cwd: testDir,
       stdout: "piped",
     });
     const { stdout } = await createCmd.output();
@@ -115,21 +121,22 @@ Deno.test({
     const issues = await getReadyWork(config);
     assertEquals(issues.length, 0);
 
-    await cleanup();
+    await cleanup(testDir);
   },
 });
 
 Deno.test({
   name: "beads: getIssue throws for non-existent issue",
   async fn() {
-    await initBeads();
-    const config: BeadsConfig = { workingDirectory: TEST_DIR };
+    const testDir = await createTestDir();
+    await initBeads(testDir);
+    const config: BeadsConfig = { workingDirectory: testDir };
 
     await assertRejects(
       () => getIssue("nonexistent-123", config),
       Error,
     );
 
-    await cleanup();
+    await cleanup(testDir);
   },
 });

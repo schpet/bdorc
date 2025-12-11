@@ -2,6 +2,8 @@
  * Quality gates module - tests, typecheck, format, lint
  */
 
+import { loadConfig, parseCommand } from "./config.ts";
+
 export interface GateResult {
   name: string;
   passed: boolean;
@@ -25,9 +27,40 @@ const DEFAULT_DENO_CONFIG: Required<
 > = {
   testCommand: ["deno", "test"],
   typecheckCommand: ["deno", "check", "**/*.ts"],
-  formatCommand: ["deno", "fmt", "--check"],
+  // Exclude .beads directory from format check (auto-generated files)
+  formatCommand: ["deno", "fmt", "--check", "--ignore=.beads"],
   lintCommand: ["deno", "lint"],
 };
+
+/**
+ * Load gates config from .config/bdorc.toml, falling back to defaults
+ */
+export async function loadGatesConfig(
+  workingDirectory: string,
+): Promise<GatesConfig> {
+  const config = await loadConfig(workingDirectory);
+
+  if (!config?.gates) {
+    return { workingDirectory };
+  }
+
+  const gatesConfig: GatesConfig = { workingDirectory };
+
+  if (config.gates.test) {
+    gatesConfig.testCommand = parseCommand(config.gates.test);
+  }
+  if (config.gates.typecheck) {
+    gatesConfig.typecheckCommand = parseCommand(config.gates.typecheck);
+  }
+  if (config.gates.format) {
+    gatesConfig.formatCommand = parseCommand(config.gates.format);
+  }
+  if (config.gates.lint) {
+    gatesConfig.lintCommand = parseCommand(config.gates.lint);
+  }
+
+  return gatesConfig;
+}
 
 async function runGate(
   name: string,
@@ -66,7 +99,7 @@ export async function runTests(config: GatesConfig): Promise<GateResult> {
 export async function runTypecheck(config: GatesConfig): Promise<GateResult> {
   const command = config.typecheckCommand ||
     DEFAULT_DENO_CONFIG.typecheckCommand;
-  return runGate("typecheck", command, config.workingDirectory);
+  return await runGate("typecheck", command, config.workingDirectory);
 }
 
 /**
@@ -74,7 +107,7 @@ export async function runTypecheck(config: GatesConfig): Promise<GateResult> {
  */
 export async function runFormat(config: GatesConfig): Promise<GateResult> {
   const command = config.formatCommand || DEFAULT_DENO_CONFIG.formatCommand;
-  return runGate("format", command, config.workingDirectory);
+  return await runGate("format", command, config.workingDirectory);
 }
 
 /**
@@ -82,7 +115,7 @@ export async function runFormat(config: GatesConfig): Promise<GateResult> {
  */
 export async function runLint(config: GatesConfig): Promise<GateResult> {
   const command = config.lintCommand || DEFAULT_DENO_CONFIG.lintCommand;
-  return runGate("lint", command, config.workingDirectory);
+  return await runGate("lint", command, config.workingDirectory);
 }
 
 /**

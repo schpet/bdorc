@@ -10,23 +10,24 @@ import {
   runTypecheck,
 } from "./gates.ts";
 
-// Create a minimal Deno project for testing
-const TEST_DIR = Deno.makeTempDirSync({ prefix: "bdorc_gates_test_" });
+async function createTestDir(): Promise<string> {
+  return await Deno.makeTempDir({ prefix: "bdorc_gates_test_" });
+}
 
-async function setupTestProject() {
+async function setupTestProject(testDir: string) {
   // Create a simple valid TypeScript file
   await Deno.writeTextFile(
-    `${TEST_DIR}/test_file.ts`,
+    `${testDir}/test_file.ts`,
     `export function hello(): string {
   return "hello";
 }
 `,
   );
 
-  // Create a passing test
+  // Create a passing test (use import map reference to avoid lint warning)
   await Deno.writeTextFile(
-    `${TEST_DIR}/test_file_test.ts`,
-    `import { assertEquals } from "jsr:@std/assert";
+    `${testDir}/test_file_test.ts`,
+    `import { assertEquals } from "@std/assert";
 import { hello } from "./test_file.ts";
 
 Deno.test("hello returns hello", () => {
@@ -35,20 +36,21 @@ Deno.test("hello returns hello", () => {
 `,
   );
 
-  // Create deno.json
+  // Create deno.json with proper formatting
   await Deno.writeTextFile(
-    `${TEST_DIR}/deno.json`,
-    JSON.stringify({
-      imports: {
-        "@std/assert": "jsr:@std/assert@1",
-      },
-    }),
+    `${testDir}/deno.json`,
+    `{
+  "imports": {
+    "@std/assert": "jsr:@std/assert@1"
+  }
+}
+`,
   );
 }
 
-async function cleanup() {
+async function cleanup(testDir: string) {
   try {
-    await Deno.remove(TEST_DIR, { recursive: true });
+    await Deno.remove(testDir, { recursive: true });
   } catch {
     // ignore
   }
@@ -57,23 +59,25 @@ async function cleanup() {
 Deno.test({
   name: "gates: runTests passes for valid test file",
   async fn() {
-    await setupTestProject();
-    const config: GatesConfig = { workingDirectory: TEST_DIR };
+    const testDir = await createTestDir();
+    await setupTestProject(testDir);
+    const config: GatesConfig = { workingDirectory: testDir };
 
     const result = await runTests(config);
     assertEquals(result.name, "tests");
     assertEquals(result.passed, true);
 
-    await cleanup();
+    await cleanup(testDir);
   },
 });
 
 Deno.test({
   name: "gates: runTypecheck passes for valid TypeScript",
   async fn() {
-    await setupTestProject();
+    const testDir = await createTestDir();
+    await setupTestProject(testDir);
     const config: GatesConfig = {
-      workingDirectory: TEST_DIR,
+      workingDirectory: testDir,
       typecheckCommand: ["deno", "check", "test_file.ts"],
     };
 
@@ -81,44 +85,47 @@ Deno.test({
     assertEquals(result.name, "typecheck");
     assertEquals(result.passed, true);
 
-    await cleanup();
+    await cleanup(testDir);
   },
 });
 
 Deno.test({
   name: "gates: runFormat passes for formatted code",
   async fn() {
-    await setupTestProject();
-    const config: GatesConfig = { workingDirectory: TEST_DIR };
+    const testDir = await createTestDir();
+    await setupTestProject(testDir);
+    const config: GatesConfig = { workingDirectory: testDir };
 
     const result = await runFormat(config);
     assertEquals(result.name, "format");
     assertEquals(result.passed, true);
 
-    await cleanup();
+    await cleanup(testDir);
   },
 });
 
 Deno.test({
   name: "gates: runLint passes for valid code",
   async fn() {
-    await setupTestProject();
-    const config: GatesConfig = { workingDirectory: TEST_DIR };
+    const testDir = await createTestDir();
+    await setupTestProject(testDir);
+    const config: GatesConfig = { workingDirectory: testDir };
 
     const result = await runLint(config);
     assertEquals(result.name, "lint");
     assertEquals(result.passed, true);
 
-    await cleanup();
+    await cleanup(testDir);
   },
 });
 
 Deno.test({
   name: "gates: runAllGates returns combined result",
   async fn() {
-    await setupTestProject();
+    const testDir = await createTestDir();
+    await setupTestProject(testDir);
     const config: GatesConfig = {
-      workingDirectory: TEST_DIR,
+      workingDirectory: testDir,
       typecheckCommand: ["deno", "check", "test_file.ts"],
     };
 
@@ -127,7 +134,7 @@ Deno.test({
     assertEquals(results.length, 4);
     assertEquals(results.every((r) => r.passed), true);
 
-    await cleanup();
+    await cleanup(testDir);
   },
 });
 
@@ -147,9 +154,10 @@ Deno.test("gates: formatGateResults formats output correctly", () => {
 Deno.test({
   name: "gates: custom commands are used when provided",
   async fn() {
-    await setupTestProject();
+    const testDir = await createTestDir();
+    await setupTestProject(testDir);
     const config: GatesConfig = {
-      workingDirectory: TEST_DIR,
+      workingDirectory: testDir,
       testCommand: ["echo", "custom test"],
       typecheckCommand: ["echo", "custom typecheck"],
       formatCommand: ["echo", "custom format"],
@@ -161,6 +169,6 @@ Deno.test({
     // All echo commands succeed
     assertEquals(results.every((r) => r.passed), true);
 
-    await cleanup();
+    await cleanup(testDir);
   },
 });

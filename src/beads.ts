@@ -68,7 +68,9 @@ export async function getIssue(
   config: BeadsConfig,
 ): Promise<BeadsIssue> {
   const output = await runBdCommand(["show", id], config);
-  return JSON.parse(output);
+  const result = JSON.parse(output);
+  // bd show returns an array
+  return Array.isArray(result) ? result[0] : result;
 }
 
 /**
@@ -83,8 +85,11 @@ export async function updateStatus(
     ["update", id, "--status", status],
     config,
   );
-  // bd update returns the updated issue
+  // bd update returns an array
   const result = JSON.parse(output);
+  if (Array.isArray(result)) {
+    return result[0];
+  }
   return result.result || result;
 }
 
@@ -112,5 +117,8 @@ export async function addNotes(
     config,
   );
   const result = JSON.parse(output);
+  if (Array.isArray(result)) {
+    return result[0];
+  }
   return result.result || result;
 }

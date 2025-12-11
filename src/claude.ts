@@ -13,6 +13,7 @@ export interface ClaudeConfig {
   workingDirectory: string;
   model?: string;
   maxTurns?: number;
+  dangerouslySkipPermissions?: boolean;
 }
 
 /**
@@ -23,6 +24,11 @@ export async function runClaudeCode(
   config: ClaudeConfig,
 ): Promise<ClaudeResult> {
   const args = ["--print"];
+
+  // Allow skipping permissions for automated execution
+  if (config.dangerouslySkipPermissions) {
+    args.push("--dangerously-skip-permissions");
+  }
 
   if (config.model) {
     args.push("--model", config.model);

@@ -13,6 +13,7 @@ async function main() {
   let model: string | undefined;
   let maxTurns: number | undefined;
   let verbose = true;
+  let dangerouslySkipPermissions = false;
 
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -34,6 +35,9 @@ async function main() {
       case "--quiet":
       case "-q":
         verbose = false;
+        break;
+      case "--dangerously-skip-permissions":
+        dangerouslySkipPermissions = true;
         break;
       case "--help":
       case "-h":
@@ -60,6 +64,7 @@ async function main() {
       model,
       maxTurns,
       verbose,
+      dangerouslySkipPermissions,
     });
 
     if (result.failed.length > 0) {
@@ -82,17 +87,18 @@ bdorc - Beads orchestrator for Claude Code
 Usage: deno run --allow-run --allow-read main.ts [options] [directory]
 
 Options:
-  -d, --dir <path>        Working directory (default: current directory)
-  -n, --max-iterations    Maximum loop iterations (default: 100)
-  -m, --model <model>     Claude model to use
-  --max-turns <n>         Max turns for Claude Code
-  -q, --quiet             Quiet mode (less output)
-  -h, --help              Show this help
+  -d, --dir <path>                Working directory (default: current directory)
+  -n, --max-iterations            Maximum loop iterations (default: 100)
+  -m, --model <model>             Claude model to use
+  --max-turns <n>                 Max turns for Claude Code
+  --dangerously-skip-permissions  Skip permission prompts (CAUTION!)
+  -q, --quiet                     Quiet mode (less output)
+  -h, --help                      Show this help
 
 Examples:
   deno run --allow-run --allow-read main.ts
   deno run --allow-run --allow-read main.ts -d /path/to/project
-  deno run --allow-run --allow-read main.ts -n 10 -m sonnet
+  deno run --allow-run --allow-read main.ts -n 10 -m sonnet --dangerously-skip-permissions
 `);
 }
 

@@ -15,7 +15,11 @@ import {
   type ClaudeConfig,
   runClaudeCode,
 } from "./claude.ts";
-import { formatGateResults, type GatesConfig, runAllGates } from "./gates.ts";
+import {
+  formatGateResults,
+  loadGatesConfig,
+  runAllGates,
+} from "./gates.ts";
 
 export interface OrchestratorConfig {
   workingDirectory: string;
@@ -23,6 +27,7 @@ export interface OrchestratorConfig {
   model?: string;
   maxTurns?: number;
   verbose?: boolean;
+  dangerouslySkipPermissions?: boolean;
 }
 
 export interface OrchestratorResult {
@@ -52,14 +57,14 @@ export async function runOrchestrator(
     workingDirectory: config.workingDirectory,
     model: config.model,
     maxTurns: config.maxTurns,
-  };
-
-  const gatesConfig: GatesConfig = {
-    workingDirectory: config.workingDirectory,
+    dangerouslySkipPermissions: config.dangerouslySkipPermissions,
   };
 
   const maxIterations = config.maxIterations ?? 100;
   const verbose = config.verbose ?? true;
+
+  // Load gates config from .config/bdorc.toml (or use defaults)
+  const gatesConfig = await loadGatesConfig(config.workingDirectory);
 
   const completed: string[] = [];
   const failed: string[] = [];
@@ -67,6 +72,14 @@ export async function runOrchestrator(
   let iteration = 0;
 
   log(`Starting orchestrator in ${config.workingDirectory}`, verbose);
+
+  // Log if custom config was loaded
+  if (
+    gatesConfig.testCommand || gatesConfig.typecheckCommand ||
+    gatesConfig.formatCommand || gatesConfig.lintCommand
+  ) {
+    log(`Loaded custom gates config from .config/bdorc.toml`, verbose);
+  }
   log(`Max iterations: ${maxIterations}`, verbose);
 
   while (iteration < maxIterations) {

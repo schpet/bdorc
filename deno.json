@@ -1,15 +1,14 @@
 {
-  "name": "@bdorc/bdorc",
-  "version": "0.1.0",
   "tasks": {
     "run": "deno run --allow-run --allow-read main.ts",
-    "test": "deno test --allow-run --allow-read",
+    "test": "deno test --allow-run --allow-read --allow-write",
     "check": "deno check **/*.ts",
     "fmt": "deno fmt",
     "fmt:check": "deno fmt --check",
     "lint": "deno lint"
   },
   "imports": {
-    "@std/assert": "jsr:@std/assert@1"
+    "@std/assert": "jsr:@std/assert@1",
+    "@std/toml": "jsr:@std/toml@1"
   }
 }
