@@ -86,7 +86,7 @@ const initCommand = new Command()
         args: [
           "--dangerously-skip-permissions",
           "--print",
-          "run 'bd onboard' and follow the instructions, but update CLAUDE.local.md instead of CLAUDE.md",
+          "run 'bd onboard' and follow the instructions, but update CLAUDE.local.md and AGENTS.local.md instead of CLAUDE.md and AGENTS.md",
         ],
         stdout: "inherit",
         stderr: "inherit",
