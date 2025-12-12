@@ -19,21 +19,8 @@ export interface GatesConfig {
   lintCommand?: string[];
 }
 
-const DEFAULT_DENO_CONFIG: Required<
-  Pick<
-    GatesConfig,
-    "testCommand" | "typecheckCommand" | "formatCommand" | "lintCommand"
-  >
-> = {
-  testCommand: ["deno", "test"],
-  typecheckCommand: ["deno", "check", "**/*.ts"],
-  // Exclude .beads directory from format check (auto-generated files)
-  formatCommand: ["deno", "fmt", "--check", "--ignore=.beads"],
-  lintCommand: ["deno", "lint"],
-};
-
 /**
- * Load gates config from .config/bdorc.toml, falling back to defaults
+ * Load gates config from .config/bdorc.toml
  */
 export async function loadGatesConfig(
   workingDirectory: string,
@@ -62,6 +49,18 @@ export async function loadGatesConfig(
   return gatesConfig;
 }
 
+/**
+ * Check if any gates are configured
+ */
+export function hasGatesConfigured(config: GatesConfig): boolean {
+  return !!(
+    config.testCommand ||
+    config.typecheckCommand ||
+    config.formatCommand ||
+    config.lintCommand
+  );
+}
+
 async function runGate(
   name: string,
   command: string[],
@@ -88,34 +87,43 @@ async function runGate(
 /**
  * Run tests
  */
-export async function runTests(config: GatesConfig): Promise<GateResult> {
-  const command = config.testCommand || DEFAULT_DENO_CONFIG.testCommand;
-  return await runGate("tests", command, config.workingDirectory);
+export async function runTests(
+  config: GatesConfig,
+): Promise<GateResult | null> {
+  if (!config.testCommand) return null;
+  return await runGate("tests", config.testCommand, config.workingDirectory);
 }
 
 /**
  * Run type checking
  */
-export async function runTypecheck(config: GatesConfig): Promise<GateResult> {
-  const command = config.typecheckCommand ||
-    DEFAULT_DENO_CONFIG.typecheckCommand;
-  return await runGate("typecheck", command, config.workingDirectory);
+export async function runTypecheck(
+  config: GatesConfig,
+): Promise<GateResult | null> {
+  if (!config.typecheckCommand) return null;
+  return await runGate(
+    "typecheck",
+    config.typecheckCommand,
+    config.workingDirectory,
+  );
 }
 
 /**
  * Run format check
  */
-export async function runFormat(config: GatesConfig): Promise<GateResult> {
-  const command = config.formatCommand || DEFAULT_DENO_CONFIG.formatCommand;
-  return await runGate("format", command, config.workingDirectory);
+export async function runFormat(
+  config: GatesConfig,
+): Promise<GateResult | null> {
+  if (!config.formatCommand) return null;
+  return await runGate("format", config.formatCommand, config.workingDirectory);
 }
 
 /**
  * Run linter
  */
-export async function runLint(config: GatesConfig): Promise<GateResult> {
-  const command = config.lintCommand || DEFAULT_DENO_CONFIG.lintCommand;
-  return await runGate("lint", command, config.workingDirectory);
+export async function runLint(config: GatesConfig): Promise<GateResult | null> {
+  if (!config.lintCommand) return null;
+  return await runGate("lint", config.lintCommand, config.workingDirectory);
 }
 
 /**
