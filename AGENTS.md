@@ -168,8 +168,8 @@ For more details, see README.md and QUICKSTART.md.
 
 ### Preferred approach
 
-- **Unit test pure functions**: Test `buildIssuePrompt()`, `parseCommand()`,
-  `formatGateResults()` etc. directly
+- **Unit test pure functions**: Test `buildIssuePrompt()`, `parseCommand()` etc.
+  directly
 - **Mock external dependencies**: Instead of calling real `bd` CLI, mock the
   function that calls it
 - **Keep integration tests separate**: If needed, put in `*_integration_test.ts`

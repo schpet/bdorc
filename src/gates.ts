@@ -117,18 +117,3 @@ export async function runAllGates(
 
   return { passed, results };
 }
-
-/**
- * Format gate results for display
- */
-export function formatGateResults(results: GateResult[]): string {
-  const lines = ["Quality Gates:"];
-  for (const result of results) {
-    const status = result.passed ? "PASS" : "FAIL";
-    lines.push(`  ${status} ${result.name}`);
-    if (!result.passed && result.error) {
-      lines.push(`    ${result.error.split("\n")[0]}`);
-    }
-  }
-  return lines.join("\n");
-}
