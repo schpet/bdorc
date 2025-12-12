@@ -29,7 +29,6 @@ export interface OrchestratorConfig {
   verbose?: boolean;
   stream?: boolean;
   dangerouslySkipPermissions?: boolean;
-  pollIntervalMs?: number;
   resumeIssues?: BeadsIssue[];
 }
 
@@ -66,7 +65,7 @@ export async function runOrchestrator(
 
   const maxIterations = config.maxIterations ?? 100;
   const verbose = config.verbose ?? true;
-  const pollIntervalMs = config.pollIntervalMs ?? 1000;
+  const pollIntervalMs = 1000;
 
   // Load gates config from .config/bdorc.toml (or use defaults)
   const gatesConfig = await loadGatesConfig(config.workingDirectory);

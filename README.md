@@ -24,8 +24,8 @@ bdorc --dangerously-skip-permissions --max-iterations 10
 # use a specific model
 bdorc --dangerously-skip-permissions --model claude-sonnet-4-20250514
 
-# quiet mode with custom polling interval
-bdorc --dangerously-skip-permissions --quiet --poll-interval 5000
+# quiet mode
+bdorc --dangerously-skip-permissions --quiet
 ```
 
 ### continuous mode vs one-shot
@@ -138,7 +138,6 @@ if no config file exists, no gates are run.
 | `-m, --model <model>`            | claude model to use                    | claude code default            |
 | `--max-turns <turns>`            | max turns per claude code session      | claude code default            |
 | `-s, --stream`                   | stream claude code output in real-time | false                          |
-| `--poll-interval <ms>`           | polling interval when idle (ms)        | 1000                           |
 | `-q, --quiet`                    | less output                            | false                          |
 | `-y, --yes`                      | skip confirmation prompts              | false                          |
 | `--dangerously-skip-permissions` | skip permission prompts (**required**) | -                              |

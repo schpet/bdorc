@@ -47,11 +47,6 @@ const command = new Command()
     "--dangerously-skip-permissions",
     "Skip permission prompts (CAUTION!)",
   )
-  .option(
-    "--poll-interval <ms:number>",
-    "Polling interval when idle (ms)",
-    { default: 1000 },
-  )
   .option("-y, --yes", "Skip confirmation prompts")
   .action(async (options) => {
     if (!options.dangerouslySkipPermissions) {
@@ -138,7 +133,6 @@ const command = new Command()
         verbose: !options.quiet,
         stream: options.stream ?? false,
         dangerouslySkipPermissions: options.dangerouslySkipPermissions ?? false,
-        pollIntervalMs: options.pollInterval,
         resumeIssues: staleIssues.length > 0 ? staleIssues : undefined,
       });
 
