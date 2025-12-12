@@ -33,7 +33,6 @@ export interface OrchestratorConfig {
   model?: string;
   maxTurns?: number;
   verbose?: boolean;
-  stream?: boolean;
   dangerouslySkipPermissions?: boolean;
   resumeIssues?: BeadsIssue[];
 }
@@ -65,7 +64,6 @@ export async function runOrchestrator(
     workingDirectory: config.workingDirectory,
     model: config.model,
     maxTurns: config.maxTurns,
-    stream: config.stream,
     dangerouslySkipPermissions: config.dangerouslySkipPermissions,
   };
 

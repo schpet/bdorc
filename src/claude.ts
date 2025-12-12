@@ -14,13 +14,12 @@ export interface ClaudeConfig {
   model?: string;
   maxTurns?: number;
   dangerouslySkipPermissions?: boolean;
-  stream?: boolean;
 }
 
 /**
- * Run Claude Code CLI with --print flag
+ * Run Claude Code CLI with --print flag (always streams output)
  */
-export async function runClaudeCode(
+export function runClaudeCode(
   prompt: string,
   config: ClaudeConfig,
 ): Promise<ClaudeResult> {
@@ -41,28 +40,7 @@ export async function runClaudeCode(
 
   args.push(prompt);
 
-  if (config.stream) {
-    return runClaudeCodeStreaming(args, config.workingDirectory);
-  }
-
-  const command = new Deno.Command("claude", {
-    args,
-    cwd: config.workingDirectory,
-    stdout: "piped",
-    stderr: "piped",
-  });
-
-  const { code, stdout, stderr } = await command.output();
-
-  const output = new TextDecoder().decode(stdout);
-  const error = new TextDecoder().decode(stderr);
-
-  return {
-    success: code === 0,
-    output,
-    error,
-    exitCode: code,
-  };
+  return runClaudeCodeStreaming(args, config.workingDirectory);
 }
 
 /**

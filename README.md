@@ -9,11 +9,8 @@ bdorc **requires** `--dangerously-skip-permissions` since it runs claude code
 autonomously in a loop and cannot prompt for permissions.
 
 ```bash
-# basic usage - run in continuous mode
+# basic usage - run in continuous mode (streams output, runs indefinitely)
 bdorc --dangerously-skip-permissions
-
-# stream claude code output in real-time (runs indefinitely by default)
-bdorc --dangerously-skip-permissions --stream
 
 # limit to 10 iterations
 bdorc --dangerously-skip-permissions --max-iterations 10
@@ -34,7 +31,7 @@ bdorc --dangerously-skip-permissions --quiet
 5. builds a prompt from issue details and runs claude code
 6. runs quality gates
 7. if gates pass, closes the issue
-8. repeats for ready issues, polling when idle if `--stream` is enabled
+8. repeats for ready issues, polling when idle
 
 ## configuration
 
@@ -78,15 +75,14 @@ if no config file exists, no gates are run.
 
 ## cli options
 
-| flag                             | description                            | default                        |
-| -------------------------------- | -------------------------------------- | ------------------------------ |
-| `-n, --max-iterations <count>`   | max loop iterations                    | 100 (infinity with `--stream`) |
-| `-m, --model <model>`            | claude model to use                    | claude code default            |
-| `--max-turns <turns>`            | max turns per claude code session      | claude code default            |
-| `-s, --stream`                   | stream claude code output in real-time | false                          |
-| `-q, --quiet`                    | less output                            | false                          |
-| `--dangerously-skip-permissions` | skip permission prompts (**required**) | -                              |
-| `-h, --help`                     | show help                              | -                              |
+| flag                             | description                            | default             |
+| -------------------------------- | -------------------------------------- | ------------------- |
+| `-n, --max-iterations <count>`   | max loop iterations                    | infinity            |
+| `-m, --model <model>`            | claude model to use                    | claude code default |
+| `--max-turns <turns>`            | max turns per claude code session      | claude code default |
+| `-q, --quiet`                    | less output                            | false               |
+| `--dangerously-skip-permissions` | skip permission prompts (**required**) | -                   |
+| `-h, --help`                     | show help                              | -                   |
 
 ## requirements
 

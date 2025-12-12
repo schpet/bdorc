@@ -39,7 +39,6 @@ const command = new Command()
   .option("-m, --model <model:string>", "Claude model to use")
   .option("--max-turns <turns:number>", "Max turns for Claude Code")
   .option("-q, --quiet", "Quiet mode (less output)")
-  .option("-s, --stream", "Stream Claude Code output in real-time")
   .option(
     "--dangerously-skip-permissions",
     "Skip permission prompts (CAUTION!)",
@@ -79,7 +78,6 @@ const command = new Command()
         const fixResult = await runClaudeCode(fixPrompt, {
           workingDirectory: Deno.cwd(),
           model: options.model,
-          stream: options.stream ?? false,
           dangerouslySkipPermissions: options.dangerouslySkipPermissions ??
             false,
         });
@@ -116,8 +114,8 @@ const command = new Command()
     }
 
     try {
-      // In stream mode, run indefinitely unless user specified a limit
-      const maxIterations = options.stream && options.maxIterations === 100
+      // Run indefinitely unless user specified a limit
+      const maxIterations = options.maxIterations === 100
         ? Infinity
         : options.maxIterations;
 
@@ -127,7 +125,6 @@ const command = new Command()
         model: options.model,
         maxTurns: options.maxTurns,
         verbose: !options.quiet,
-        stream: options.stream ?? false,
         dangerouslySkipPermissions: options.dangerouslySkipPermissions ?? false,
         resumeIssues: staleIssues.length > 0 ? staleIssues : undefined,
       });
