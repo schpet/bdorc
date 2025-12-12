@@ -25,7 +25,8 @@ import {
   runAllReviews,
 } from "./reviews.ts";
 import { commitWork, loadVcsConfig } from "./vcs.ts";
-import { bold, cyan, yellow } from "@std/fmt/colors";
+import { systemLog, systemWarn } from "./system-log.ts";
+import { bold, cyan } from "@std/fmt/colors";
 
 export interface OrchestratorConfig {
   workingDirectory: string;
@@ -42,12 +43,6 @@ export interface OrchestratorResult {
   failed: string[];
   iterations: number;
   gateFailures: number;
-}
-
-function log(message: string, verbose: boolean) {
-  if (verbose) {
-    console.log(message);
-  }
 }
 
 /**
@@ -86,26 +81,27 @@ export async function runOrchestrator(
   let iteration = 0;
   let idleMessagePrinted = false;
 
-  log(`Starting orchestrator in ${config.workingDirectory}`, verbose);
+  if (verbose) {
+    systemLog(`Starting orchestrator in ${config.workingDirectory}`);
+  }
 
   // Warn if no gates configured
   if (!hasGatesConfigured(gatesConfig)) {
-    console.log(
-      yellow(
-        "Warning: No quality gates configured. Create .config/bdorc.toml to add gates.",
-      ),
+    systemWarn(
+      "No quality gates configured. Create .config/bdorc.toml to add gates.",
     );
-  } else {
-    log(`Loaded gates config from .config/bdorc.toml`, verbose);
+  } else if (verbose) {
+    systemLog("Loaded gates config from .config/bdorc.toml");
   }
 
-  if (hasReviewsConfigured(reviewsConfig)) {
-    log(
+  if (hasReviewsConfigured(reviewsConfig) && verbose) {
+    systemLog(
       `Loaded ${reviewsConfig.reviews.length} review(s) from .config/bdorc.toml`,
-      verbose,
     );
   }
-  log(`Max iterations: ${maxIterations}`, verbose);
+  if (verbose) {
+    systemLog(`Max iterations: ${maxIterations}`);
+  }
 
   // Track issues to resume (consumed as we process them)
   const resumeQueue = config.resumeIssues ? [...config.resumeIssues] : [];
@@ -119,27 +115,30 @@ export async function runOrchestrator(
       issue = resumeQueue.shift()!;
       isResume = true;
       iteration++;
-      const cols = Deno.stdout.isTerminal() ? Deno.consoleSize().columns : 80;
-      log(`\n${"─".repeat(cols)}`, verbose);
-      log(
-        `${bold("Resuming:")} ${cyan(issue.id)} - ${bold(issue.title)}`,
-        verbose,
-      );
+      if (verbose) {
+        const cols = Deno.stdout.isTerminal() ? Deno.consoleSize().columns : 80;
+        console.log(`\n${"─".repeat(cols)}`);
+        systemLog(
+          `${bold("Resuming:")} ${cyan(issue.id)} - ${bold(issue.title)}`,
+        );
+      }
     } else {
       // Get ready work
       let readyWork: BeadsIssue[];
       try {
         readyWork = await getReadyWork(beadsConfig);
       } catch (error) {
-        log(`Error getting ready work: ${error}`, verbose);
+        if (verbose) {
+          systemLog(`Error getting ready work: ${error}`);
+        }
         break;
       }
 
       if (readyWork.length === 0) {
         // Print idle message once when we first become idle
-        if (!idleMessagePrinted) {
+        if (!idleMessagePrinted && verbose) {
           const pollSeconds = Math.round(pollIntervalMs / 1000);
-          log(`No ready issues, polling every ${pollSeconds}s...`, verbose);
+          systemLog(`No ready issues, polling every ${pollSeconds}s...`);
           idleMessagePrinted = true;
         }
         await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
@@ -152,19 +151,24 @@ export async function runOrchestrator(
       // Pick first issue (highest priority)
       issue = readyWork[0];
       iteration++;
-      const cols = Deno.stdout.isTerminal() ? Deno.consoleSize().columns : 80;
-      log(`\n${"─".repeat(cols)}`, verbose);
-      log(
-        `${bold("Working on:")} ${cyan(issue.id)} - ${bold(issue.title)}`,
-        verbose,
-      );
+      if (verbose) {
+        const cols = Deno.stdout.isTerminal() ? Deno.consoleSize().columns : 80;
+        console.log(`\n${"─".repeat(cols)}`);
+        systemLog(
+          `${bold("Working on:")} ${cyan(issue.id)} - ${bold(issue.title)}`,
+        );
+      }
 
       // Claim the issue
       try {
         await updateStatus(issue.id, "in_progress", beadsConfig);
-        log(`Claimed issue ${issue.id}`, verbose);
+        if (verbose) {
+          systemLog(`Claimed issue ${issue.id}`);
+        }
       } catch (error) {
-        log(`Error claiming issue: ${error}`, verbose);
+        if (verbose) {
+          systemLog(`Error claiming issue: ${error}`);
+        }
         failed.push(issue.id);
         continue;
       }
@@ -174,12 +178,16 @@ export async function runOrchestrator(
     const prompt = isResume
       ? buildResumePrompt(issue)
       : buildIssuePrompt(issue);
-    log(`Running Claude Code...`, verbose);
+    if (verbose) {
+      systemLog("Running Claude Code...");
+    }
 
     const claudeResult = await runClaudeCode(prompt, claudeConfig);
 
     if (!claudeResult.success) {
-      log(`Claude Code failed: ${claudeResult.error}`, verbose);
+      if (verbose) {
+        systemLog(`Claude Code failed: ${claudeResult.error}`);
+      }
       await addNotes(
         issue.id,
         `Claude Code failed (exit ${claudeResult.exitCode}): ${
@@ -191,15 +199,21 @@ export async function runOrchestrator(
       continue;
     }
 
-    log(`Claude Code completed successfully`, verbose);
+    if (verbose) {
+      systemLog("Claude Code completed successfully");
+    }
 
     // Run reviews (if configured)
     if (hasReviewsConfigured(reviewsConfig)) {
-      log(`Running reviews...`, verbose);
+      if (verbose) {
+        systemLog("Running reviews...");
+      }
       const reviewsResult = await runAllReviews(reviewsConfig, claudeConfig);
 
       if (!reviewsResult.success) {
-        log(`Reviews failed: ${reviewsResult.error}`, verbose);
+        if (verbose) {
+          systemLog(`Reviews failed: ${reviewsResult.error}`);
+        }
         await addNotes(
           issue.id,
           `Reviews failed after ${reviewsResult.reviewsRun} review(s): ${
@@ -211,21 +225,24 @@ export async function runOrchestrator(
         continue;
       }
 
-      if (reviewsResult.reviewsRun > 0) {
-        log(
+      if (reviewsResult.reviewsRun > 0 && verbose) {
+        systemLog(
           `Completed ${reviewsResult.reviewsRun} review(s) successfully`,
-          verbose,
         );
       }
     }
 
     // Run quality gates
-    log(`Running quality gates...`, verbose);
+    if (verbose) {
+      systemLog("Running quality gates...");
+    }
     const gatesResult = await runAllGates(gatesConfig);
 
     if (!gatesResult.passed) {
       gateFailures++;
-      log(`Quality gates failed for ${issue.id}, running fix...`, verbose);
+      if (verbose) {
+        systemLog(`Quality gates failed for ${issue.id}, running fix...`);
+      }
 
       // Build fix prompt with failure details
       const failures: GateFailure[] = gatesResult.results
@@ -233,12 +250,16 @@ export async function runOrchestrator(
         .map((r) => ({ name: r.name, output: r.output, error: r.error }));
 
       const fixPrompt = buildFixPrompt(issue.id, failures);
-      log(`Running Claude Code to fix failures...`, verbose);
+      if (verbose) {
+        systemLog("Running Claude Code to fix failures...");
+      }
 
       const fixResult = await runClaudeCode(fixPrompt, claudeConfig);
 
       if (!fixResult.success) {
-        log(`Claude Code fix failed: ${fixResult.error}`, verbose);
+        if (verbose) {
+          systemLog(`Claude Code fix failed: ${fixResult.error}`);
+        }
         await addNotes(
           issue.id,
           `Fix attempt failed (exit ${fixResult.exitCode}): ${
@@ -250,7 +271,9 @@ export async function runOrchestrator(
         continue;
       }
 
-      log(`Fix completed, re-running quality gates...`, verbose);
+      if (verbose) {
+        systemLog("Fix completed, re-running quality gates...");
+      }
 
       // Re-run gates after fix
       const retryResult = await runAllGates(gatesConfig);
@@ -270,26 +293,33 @@ export async function runOrchestrator(
       }
 
       // Fix worked! Fall through to close the issue
-      log(`Fix successful!`, verbose);
+      if (verbose) {
+        systemLog("Fix successful!");
+      }
     }
 
     // Success - commit work and close the issue
     try {
       // Commit work using VCS
       if (vcsConfig.enabled) {
-        log(`Committing work for ${issue.id}...`, verbose);
+        if (verbose) {
+          systemLog(`Committing work for ${issue.id}...`);
+        }
         const commitResult = await commitWork(
           issue,
           vcsConfig,
           config.workingDirectory,
         );
         if (commitResult.success) {
-          log(`Commit: ${commitResult.message}`, verbose);
+          if (verbose) {
+            systemLog(`Commit: ${commitResult.message}`);
+          }
         } else {
-          log(
-            `Commit failed: ${commitResult.error || commitResult.message}`,
-            verbose,
-          );
+          if (verbose) {
+            systemLog(
+              `Commit failed: ${commitResult.error || commitResult.message}`,
+            );
+          }
           // Continue to close the issue even if commit fails
         }
       }
@@ -299,19 +329,25 @@ export async function runOrchestrator(
         "Completed by orchestrator. All quality gates passed.",
         beadsConfig,
       );
-      log(`Closed issue ${issue.id}`, verbose);
+      if (verbose) {
+        systemLog(`Closed issue ${issue.id}`);
+      }
       completed.push(issue.id);
     } catch (error) {
-      log(`Error closing issue: ${error}`, verbose);
+      if (verbose) {
+        systemLog(`Error closing issue: ${error}`);
+      }
       failed.push(issue.id);
     }
   }
 
-  log(`\n=== Orchestrator Summary ===`, verbose);
-  log(`Iterations: ${iteration}`, verbose);
-  log(`Completed: ${completed.length}`, verbose);
-  log(`Failed: ${failed.length}`, verbose);
-  log(`Gate failures: ${gateFailures}`, verbose);
+  if (verbose) {
+    systemLog("=== Orchestrator Summary ===");
+    systemLog(`Iterations: ${iteration}`);
+    systemLog(`Completed: ${completed.length}`);
+    systemLog(`Failed: ${failed.length}`);
+    systemLog(`Gate failures: ${gateFailures}`);
+  }
 
   return {
     completed,

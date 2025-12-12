@@ -13,6 +13,7 @@ import {
   runAllGates,
 } from "./src/gates.ts";
 import { runOrchestrator } from "./src/mod.ts";
+import { systemLog, systemWarn } from "./src/system-log.ts";
 
 /**
  * Check for in_progress issues from a previous run and prompt user to resume
@@ -184,14 +185,13 @@ const command = new Command()
       Deno.exit(1);
     }
 
-    console.log("bdorc - Beads orchestrator for Claude Code");
-    console.log("==========================================");
+    systemLog("bdorc - Beads orchestrator for Claude Code");
 
     // Run initial gate check
     const gatesConfig = await loadGatesConfig(Deno.cwd());
 
     if (hasGatesConfigured(gatesConfig)) {
-      console.log("\nRunning gates...");
+      systemLog("Running gates...");
       const gatesResult = await runAllGates(gatesConfig);
 
       if (!gatesResult.passed) {
@@ -200,10 +200,7 @@ const command = new Command()
           .map((r) => ({ name: r.name, output: r.output, error: r.error }));
 
         const fixPrompt = buildFixPrompt("initial-gates", failures);
-        console.log("\n--- Prompt to Claude ---");
-        console.log(fixPrompt);
-        console.log("------------------------\n");
-        console.log("Running Claude Code to fix gate failures...");
+        systemLog("Running Claude Code to fix gate failures...");
         const fixResult = await runClaudeCode(fixPrompt, {
           workingDirectory: Deno.cwd(),
           model: options.model,
@@ -217,7 +214,7 @@ const command = new Command()
         }
 
         // Re-run gates after fix
-        console.log("\nRe-running gates...");
+        systemLog("Re-running gates...");
         const retryResult = await runAllGates(gatesConfig);
 
         if (!retryResult.passed) {
@@ -225,7 +222,7 @@ const command = new Command()
           Deno.exit(1);
         }
 
-        console.log("Gates now passing!");
+        systemLog("Gates now passing!");
       }
     }
 
@@ -233,11 +230,11 @@ const command = new Command()
     const staleIssues = await checkStaleIssues(Deno.cwd());
 
     if (staleIssues.length > 0) {
-      console.warn("\n⚠️  Found in_progress issues from a previous run:");
+      systemWarn("Found in_progress issues from a previous run:");
       for (const issue of staleIssues) {
-        console.warn(`   ${issue.id}: ${issue.title}`);
+        systemWarn(`  ${issue.id}: ${issue.title}`);
       }
-      console.warn("   Resuming these issues automatically.\n");
+      systemWarn("Resuming these issues automatically.");
       // Always resume - leave them as in_progress and the orchestrator
       // will pick them up with their existing notes/context
     }
@@ -263,7 +260,7 @@ const command = new Command()
         Deno.exit(1);
       }
 
-      console.log("\nAll done!");
+      systemLog("All done!");
       Deno.exit(0);
     } catch (error) {
       console.error(`Error: ${error}`);
