@@ -6,3 +6,6 @@ gates = [
 
 [vcs]
 command = "jj"
+
+[[reviews]]
+prompt = "Be extremely discriminating about comments: remove all comments except those that offer insight that isn't clear from reading the code - only keep them if they have some special information."
