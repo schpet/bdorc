@@ -54,7 +54,7 @@ export async function commitWork(
     return { success: true, message: "VCS disabled, skipping commit" };
   }
 
-  const message = `${issue.id}: ${issue.title}`;
+  const message = `${issue.title}\n\nBeads: ${issue.id}`;
 
   return await commitWithJj(message, workingDirectory);
 }
