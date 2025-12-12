@@ -3,7 +3,6 @@
  */
 
 import { Command } from "@cliffy/command";
-import { Confirm } from "@cliffy/prompt";
 import { type BeadsIssue, getIssuesByStatus } from "./src/beads.ts";
 import { buildFixPrompt, runClaudeCode } from "./src/claude.ts";
 import {
@@ -55,6 +54,17 @@ const command = new Command()
   )
   .option("-y, --yes", "Skip confirmation prompts")
   .action(async (options) => {
+    if (!options.dangerouslySkipPermissions) {
+      console.error(
+        "Error: bdorc requires --dangerously-skip-permissions to run autonomously.",
+      );
+      console.error(
+        "This tool runs Claude Code in a loop and cannot prompt for permissions.",
+      );
+      console.error("\nUsage: bdorc --dangerously-skip-permissions [options]");
+      Deno.exit(1);
+    }
+
     console.log("bdorc - Beads orchestrator for Claude Code");
     console.log("==========================================");
 
@@ -103,28 +113,13 @@ const command = new Command()
     // Check for stale in_progress issues
     const staleIssues = await checkStaleIssues(options.dir);
 
-    if (staleIssues.length > 0 && !options.yes) {
-      console.log("\nFound in_progress issues from a previous run:");
+    if (staleIssues.length > 0) {
+      console.warn("\n⚠️  Found in_progress issues from a previous run:");
       for (const issue of staleIssues) {
-        console.log(`  ${issue.id}: ${issue.title}`);
+        console.warn(`   ${issue.id}: ${issue.title}`);
       }
-
-      const resume = await Confirm.prompt({
-        message: "Resume these issues?",
-        default: true,
-      });
-
-      if (!resume) {
-        console.log("Resetting issues to open status...");
-        const { updateStatus } = await import("./src/beads.ts");
-        for (const issue of staleIssues) {
-          await updateStatus(issue.id, "open", {
-            workingDirectory: options.dir,
-          });
-          console.log(`  Reset ${issue.id} to open`);
-        }
-      }
-      // If resume=true, we leave them as in_progress and the orchestrator
+      console.warn("   Resuming these issues automatically.\n");
+      // Always resume - leave them as in_progress and the orchestrator
       // will pick them up with their existing notes/context
     }
 

@@ -67,13 +67,17 @@ export async function runClaudeCode(
 
 /**
  * Run Claude Code with streaming output to console
+ * Uses --output-format stream-json --verbose to get real-time output
  */
 async function runClaudeCodeStreaming(
   args: string[],
   cwd: string,
 ): Promise<ClaudeResult> {
+  // Add streaming flags for real-time output
+  const streamArgs = [...args, "--output-format", "stream-json", "--verbose"];
+
   const command = new Deno.Command("claude", {
-    args,
+    args: streamArgs,
     cwd,
     stdout: "piped",
     stderr: "piped",
@@ -82,7 +86,7 @@ async function runClaudeCodeStreaming(
   const process = command.spawn();
 
   // Collect output while streaming
-  let output = "";
+  let finalResult = "";
   let error = "";
 
   // Stream stdout
@@ -92,12 +96,31 @@ async function runClaudeCodeStreaming(
 
   // Read both streams concurrently
   const readStdout = async () => {
+    let buffer = "";
     while (true) {
       const { done, value } = await stdoutReader.read();
       if (done) break;
-      const text = decoder.decode(value);
-      output += text;
-      Deno.stdout.writeSync(new TextEncoder().encode(text));
+      buffer += decoder.decode(value, { stream: true });
+
+      // Process complete JSON lines
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const event = JSON.parse(line);
+          displayStreamEvent(event);
+
+          // Capture final result
+          if (event.type === "result" && event.result) {
+            finalResult = event.result;
+          }
+        } catch {
+          // Not JSON, print raw
+          console.log(line);
+        }
+      }
     }
   };
 
@@ -118,10 +141,61 @@ async function runClaudeCodeStreaming(
 
   return {
     success: code === 0,
-    output,
+    output: finalResult,
     error,
     exitCode: code,
   };
+}
+
+/**
+ * Display a stream-json event in a human-readable format
+ */
+function displayStreamEvent(event: Record<string, unknown>): void {
+  const type = event.type as string;
+  const subtype = event.subtype as string | undefined;
+
+  switch (type) {
+    case "assistant": {
+      const message = event.message as Record<string, unknown> | undefined;
+      if (message?.content) {
+        const content = message.content as Array<Record<string, unknown>>;
+        for (const block of content) {
+          if (block.type === "text" && block.text) {
+            Deno.stdout.writeSync(new TextEncoder().encode(block.text as string));
+          } else if (block.type === "tool_use") {
+            const name = block.name as string;
+            console.log(`\n[Tool: ${name}]`);
+          }
+        }
+      }
+      break;
+    }
+    case "user": {
+      const message = event.message as Record<string, unknown> | undefined;
+      if (message?.content) {
+        const content = message.content as Array<Record<string, unknown>>;
+        for (const block of content) {
+          if (block.type === "tool_result") {
+            const toolName = block.tool_name as string | undefined;
+            if (toolName) {
+              console.log(`[Result: ${toolName}]`);
+            }
+          }
+        }
+      }
+      break;
+    }
+    case "result":
+      if (subtype === "success") {
+        console.log("\n[Done]");
+      } else if (subtype === "error") {
+        console.log(`\n[Error: ${event.error}]`);
+      }
+      break;
+    case "system":
+      // Skip system events (hooks, init, etc.)
+      break;
+  }
 }
 
 /**
@@ -238,6 +312,7 @@ export function buildFixPrompt(
   parts.push(
     "",
     "Instructions:",
+    "- IMPORTANT: If the error is from a formatter or linter, run the auto-fix command (e.g. `deno fmt`, `prettier --write`, `eslint --fix`) instead of manually editing files",
     "- Fix the issues shown above",
     "- Run the failing commands to verify fixes work",
     "- Keep changes minimal and focused on fixing the failures",
