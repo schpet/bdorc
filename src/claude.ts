@@ -2,6 +2,8 @@
  * Claude Code runner module - execute claude CLI with --print flag
  */
 
+import { dim, green } from "@std/fmt/colors";
+
 export interface ClaudeResult {
   success: boolean;
   output: string;
@@ -126,6 +128,36 @@ async function runClaudeCodeStreaming(
 }
 
 /**
+ * Extract meaningful argument for tool display
+ */
+function getToolArg(
+  toolName: string,
+  input?: Record<string, unknown>,
+): string {
+  if (!input) return "";
+  switch (toolName) {
+    case "Read":
+      return (input.file_path as string) || "";
+    case "Glob":
+      return (input.pattern as string) || "";
+    case "Grep":
+      return (input.pattern as string) || "";
+    case "Edit":
+      return (input.file_path as string) || "";
+    case "Write":
+      return (input.file_path as string) || "";
+    case "Bash":
+      return (input.command as string)?.slice(0, 40) || "";
+    case "WebFetch":
+      return (input.url as string) || "";
+    case "TodoWrite":
+      return "";
+    default:
+      return "";
+  }
+}
+
+/**
  * Display a stream-json event in a human-readable format
  */
 function displayStreamEvent(event: Record<string, unknown>): void {
@@ -144,25 +176,16 @@ function displayStreamEvent(event: Record<string, unknown>): void {
             );
           } else if (block.type === "tool_use") {
             const name = block.name as string;
-            console.log(`\n[Tool: ${name}]`);
+            const input = block.input as Record<string, unknown> | undefined;
+            const toolArg = getToolArg(name, input);
+            console.log(`\n${green("⏺")} ${name}${dim(`(${toolArg})`)}`);
           }
         }
       }
       break;
     }
     case "user": {
-      const message = event.message as Record<string, unknown> | undefined;
-      if (message?.content) {
-        const content = message.content as Array<Record<string, unknown>>;
-        for (const block of content) {
-          if (block.type === "tool_result") {
-            const toolName = block.tool_name as string | undefined;
-            if (toolName) {
-              console.log(`[Result: ${toolName}]`);
-            }
-          }
-        }
-      }
+      // Tool results - skip to keep output clean
       break;
     }
     case "result":
