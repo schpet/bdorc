@@ -10,3 +10,4 @@ export * from "./claude.ts";
 export * from "./config.ts";
 export * from "./gates.ts";
 export * from "./orchestrator.ts";
+export * from "./vcs.ts";

@@ -19,6 +19,7 @@ import {
   runClaudeCode,
 } from "./claude.ts";
 import { hasGatesConfigured, loadGatesConfig, runAllGates } from "./gates.ts";
+import { commitWork, loadVcsConfig } from "./vcs.ts";
 
 export interface OrchestratorConfig {
   workingDirectory: string;
@@ -70,10 +71,14 @@ export async function runOrchestrator(
   // Load gates config from .config/bdorc.toml (or use defaults)
   const gatesConfig = await loadGatesConfig(config.workingDirectory);
 
+  // Load VCS config
+  const vcsConfig = await loadVcsConfig(config.workingDirectory);
+
   const completed: string[] = [];
   const failed: string[] = [];
   let gateFailures = 0;
   let iteration = 0;
+  let idleMessagePrinted = false;
 
   log(`Starting orchestrator in ${config.workingDirectory}`, verbose);
 
@@ -92,9 +97,6 @@ export async function runOrchestrator(
   const resumeQueue = config.resumeIssues ? [...config.resumeIssues] : [];
 
   while (iteration < maxIterations) {
-    iteration++;
-    log(`\n--- Iteration ${iteration} ---`, verbose);
-
     let issue: BeadsIssue;
     let isResume = false;
 
@@ -102,6 +104,8 @@ export async function runOrchestrator(
     if (resumeQueue.length > 0) {
       issue = resumeQueue.shift()!;
       isResume = true;
+      iteration++;
+      log(`\n--- Iteration ${iteration} ---`, verbose);
       log(`Resuming: ${issue.id} - ${issue.title}`, verbose);
     } else {
       // Get ready work
@@ -114,18 +118,23 @@ export async function runOrchestrator(
       }
 
       if (readyWork.length === 0) {
-        log(
-          `No ready work found. Waiting ${
-            pollIntervalMs / 1000
-          }s... (Ctrl+C to quit)`,
-          verbose,
-        );
+        // Print idle message once when we first become idle
+        if (!idleMessagePrinted) {
+          const pollSeconds = Math.round(pollIntervalMs / 1000);
+          log(`No ready issues, polling every ${pollSeconds}s...`, verbose);
+          idleMessagePrinted = true;
+        }
         await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
         continue;
       }
 
+      // Reset idle message flag when we find work
+      idleMessagePrinted = false;
+
       // Pick first issue (highest priority)
       issue = readyWork[0];
+      iteration++;
+      log(`\n--- Iteration ${iteration} ---`, verbose);
       log(`Working on: ${issue.id} - ${issue.title}`, verbose);
 
       // Claim the issue
@@ -216,8 +225,27 @@ export async function runOrchestrator(
       log(`Fix successful!`, verbose);
     }
 
-    // Success - close the issue
+    // Success - commit work and close the issue
     try {
+      // Commit work using VCS
+      if (vcsConfig.enabled) {
+        log(`Committing work for ${issue.id}...`, verbose);
+        const commitResult = await commitWork(
+          issue,
+          vcsConfig,
+          config.workingDirectory,
+        );
+        if (commitResult.success) {
+          log(`Commit: ${commitResult.message}`, verbose);
+        } else {
+          log(
+            `Commit failed: ${commitResult.error || commitResult.message}`,
+            verbose,
+          );
+          // Continue to close the issue even if commit fails
+        }
+      }
+
       await closeIssue(
         issue.id,
         "Completed by orchestrator. All quality gates passed.",

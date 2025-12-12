@@ -125,9 +125,14 @@ const command = new Command()
     }
 
     try {
+      // In stream mode, run indefinitely unless user specified a limit
+      const maxIterations = options.stream && options.maxIterations === 100
+        ? Infinity
+        : options.maxIterations;
+
       const result = await runOrchestrator({
         workingDirectory: options.dir,
-        maxIterations: options.maxIterations,
+        maxIterations,
         model: options.model,
         maxTurns: options.maxTurns,
         verbose: !options.quiet,
