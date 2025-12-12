@@ -15,9 +15,6 @@ bdorc --dangerously-skip-permissions
 # stream claude code output in real-time (runs indefinitely by default)
 bdorc --dangerously-skip-permissions --stream
 
-# run in a specific directory
-bdorc --dangerously-skip-permissions --dir /path/to/project
-
 # limit to 10 iterations (one-shot style)
 bdorc --dangerously-skip-permissions --max-iterations 10
 
@@ -100,7 +97,6 @@ if no config file exists, no gates are run.
 
 | flag                             | description                            | default                        |
 | -------------------------------- | -------------------------------------- | ------------------------------ |
-| `-d, --dir <path>`               | working directory                      | current directory              |
 | `-n, --max-iterations <count>`   | max loop iterations                    | 100 (infinity with `--stream`) |
 | `-m, --model <model>`            | claude model to use                    | claude code default            |
 | `--max-turns <turns>`            | max turns per claude code session      | claude code default            |

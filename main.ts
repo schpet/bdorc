@@ -33,9 +33,6 @@ const command = new Command()
   .name("bdorc")
   .version("0.1.0")
   .description("Beads orchestrator for Claude Code")
-  .option("-d, --dir <path:string>", "Working directory", {
-    default: Deno.cwd(),
-  })
   .option("-n, --max-iterations <count:number>", "Maximum loop iterations", {
     default: 100,
   })
@@ -63,7 +60,7 @@ const command = new Command()
     console.log("==========================================");
 
     // Run initial gate check
-    const gatesConfig = await loadGatesConfig(options.dir);
+    const gatesConfig = await loadGatesConfig(Deno.cwd());
 
     if (hasGatesConfigured(gatesConfig)) {
       console.log("\nRunning gates...");
@@ -80,7 +77,7 @@ const command = new Command()
         console.log("------------------------\n");
         console.log("Running Claude Code to fix gate failures...");
         const fixResult = await runClaudeCode(fixPrompt, {
-          workingDirectory: options.dir,
+          workingDirectory: Deno.cwd(),
           model: options.model,
           stream: options.stream ?? false,
           dangerouslySkipPermissions: options.dangerouslySkipPermissions ??
@@ -106,7 +103,7 @@ const command = new Command()
     }
 
     // Check for stale in_progress issues
-    const staleIssues = await checkStaleIssues(options.dir);
+    const staleIssues = await checkStaleIssues(Deno.cwd());
 
     if (staleIssues.length > 0) {
       console.warn("\n⚠️  Found in_progress issues from a previous run:");
@@ -125,7 +122,7 @@ const command = new Command()
         : options.maxIterations;
 
       const result = await runOrchestrator({
-        workingDirectory: options.dir,
+        workingDirectory: Deno.cwd(),
         maxIterations,
         model: options.model,
         maxTurns: options.maxTurns,
