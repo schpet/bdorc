@@ -73,17 +73,6 @@ gates are run sequentially and must all pass for an issue to be closed.
 
 ### language examples
 
-**node.js / typescript:**
-
-```toml
-gates = [
-  "npm test",
-  "npx tsc --noEmit",
-  "npx prettier --check .",
-  "npx eslint .",
-]
-```
-
 **deno:**
 
 ```toml
@@ -102,28 +91,6 @@ gates = [
   "cargo check",
   "cargo fmt --check",
   "cargo clippy -- -D warnings",
-]
-```
-
-**go:**
-
-```toml
-gates = [
-  "go test ./...",
-  "go build ./...",
-  "gofmt -l .",
-  "golangci-lint run",
-]
-```
-
-**python:**
-
-```toml
-gates = [
-  "pytest",
-  "mypy .",
-  "black --check .",
-  "ruff check .",
 ]
 ```
 
