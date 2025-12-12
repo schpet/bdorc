@@ -3,8 +3,10 @@
  */
 
 import { Command } from "@cliffy/command";
+import { Confirm, Input, Select } from "@cliffy/prompt";
 import { type BeadsIssue, getIssuesByStatus } from "./src/beads.ts";
 import { buildFixPrompt, runClaudeCode } from "./src/claude.ts";
+import { loadConfig } from "./src/config.ts";
 import {
   hasGatesConfigured,
   loadGatesConfig,
@@ -28,6 +30,133 @@ async function checkStaleIssues(
     return [];
   }
 }
+
+const PROJECT_TYPE_GATES: Record<string, string[]> = {
+  deno: ["deno fmt --check", "deno lint", "deno test -A"],
+  rust: ["cargo fmt --check", "cargo clippy -- -D warnings", "cargo test"],
+  node: ["npm test", "npx tsc --noEmit", "npx prettier --check ."],
+  other: [],
+};
+
+function generateTomlConfig(options: {
+  gates: string[];
+  useVcs: boolean;
+  reviews: string[];
+}): string {
+  let toml = `gates = [\n`;
+  for (const gate of options.gates) {
+    toml += `  "${gate}",\n`;
+  }
+  toml += `]\n`;
+
+  if (options.useVcs) {
+    toml += `\n[vcs]\ncommand = "jj"\n`;
+  }
+
+  for (const review of options.reviews) {
+    toml += `\n[[reviews]]\nprompt = "${review.replace(/"/g, '\\"')}"\n`;
+  }
+
+  return toml;
+}
+
+const initCommand = new Command()
+  .name("init")
+  .description("Initialize bdorc configuration")
+  .action(async () => {
+    const configPath = `${Deno.cwd()}/.config/bdorc.toml`;
+
+    const existingConfig = await loadConfig(Deno.cwd());
+    if (existingConfig) {
+      const overwrite = await Confirm.prompt({
+        message: "Config file already exists. Overwrite?",
+        default: false,
+      });
+      if (!overwrite) {
+        console.log("Aborted.");
+        return;
+      }
+    }
+
+    const projectType = await Select.prompt({
+      message: "What type of project is this?",
+      options: [
+        { name: "Deno", value: "deno" },
+        { name: "Rust", value: "rust" },
+        { name: "Node.js/TypeScript", value: "node" },
+        { name: "Other", value: "other" },
+      ],
+    });
+
+    const suggestedGates = PROJECT_TYPE_GATES[projectType] || [];
+    let gates = [...suggestedGates];
+
+    if (gates.length > 0) {
+      console.log(`\nSuggested gates for ${projectType}:`);
+      for (const gate of gates) {
+        console.log(`  - ${gate}`);
+      }
+      const useDefaults = await Confirm.prompt({
+        message: "Use these gates?",
+        default: true,
+      });
+      if (!useDefaults) {
+        gates = [];
+      }
+    }
+
+    let addMore = gates.length === 0 ||
+      await Confirm.prompt({
+        message: "Add additional gates?",
+        default: false,
+      });
+    while (addMore) {
+      const gate = await Input.prompt({
+        message: "Enter gate command (empty to finish):",
+      });
+      if (!gate.trim()) break;
+      gates.push(gate.trim());
+      addMore = await Confirm.prompt({
+        message: "Add another gate?",
+        default: false,
+      });
+    }
+
+    const useVcs = await Confirm.prompt({
+      message: "Enable automatic commits with jj?",
+      default: false,
+    });
+
+    const reviews: string[] = [];
+    let addReviews = await Confirm.prompt({
+      message: "Add review prompts?",
+      default: false,
+    });
+    while (addReviews) {
+      const review = await Input.prompt({
+        message: "Enter review prompt (empty to finish):",
+      });
+      if (!review.trim()) break;
+      reviews.push(review.trim());
+      addReviews = await Confirm.prompt({
+        message: "Add another review prompt?",
+        default: false,
+      });
+    }
+
+    const tomlContent = generateTomlConfig({ gates, useVcs, reviews });
+
+    try {
+      await Deno.mkdir(`${Deno.cwd()}/.config`, { recursive: true });
+    } catch (error) {
+      if (!(error instanceof Deno.errors.AlreadyExists)) {
+        throw error;
+      }
+    }
+
+    await Deno.writeTextFile(configPath, tomlContent);
+    console.log(`\nConfiguration written to ${configPath}`);
+  });
 
 const command = new Command()
   .name("bdorc")
@@ -140,7 +269,8 @@ const command = new Command()
       console.error(`Error: ${error}`);
       Deno.exit(1);
     }
-  });
+  })
+  .command("init", initCommand);
 
 if (import.meta.main) {
   await command.parse(Deno.args);
