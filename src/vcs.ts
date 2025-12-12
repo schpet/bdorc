@@ -7,7 +7,7 @@ import { loadConfig } from "./config.ts";
 
 export interface VcsConfig {
   enabled: boolean;
-  command: "jj" | "git";
+  command: "jj";
   commitFormat: string;
 }
 
@@ -18,7 +18,7 @@ export interface VcsResult {
 }
 
 const DEFAULT_VCS_CONFIG: VcsConfig = {
-  enabled: true,
+  enabled: false,
   command: "jj",
   commitFormat: "{id}: {title}",
 };
@@ -31,6 +31,7 @@ export async function loadVcsConfig(
 ): Promise<VcsConfig> {
   const config = await loadConfig(workingDirectory);
 
+  // If no [vcs] section exists, VCS is disabled
   if (!config?.vcs) {
     return DEFAULT_VCS_CONFIG;
   }
@@ -39,7 +40,7 @@ export async function loadVcsConfig(
 
   return {
     enabled: typeof vcs.enabled === "boolean" ? vcs.enabled : true,
-    command: vcs.command === "git" ? "git" : "jj",
+    command: "jj",
     commitFormat: typeof vcs.commit_format === "string"
       ? vcs.commit_format
       : DEFAULT_VCS_CONFIG.commitFormat,
@@ -73,11 +74,7 @@ export async function commitWork(
 
   const message = formatCommitMessage(issue, config.commitFormat);
 
-  if (config.command === "jj") {
-    return await commitWithJj(message, workingDirectory);
-  } else {
-    return await commitWithGit(message, workingDirectory);
-  }
+  return await commitWithJj(message, workingDirectory);
 }
 
 /**
@@ -105,62 +102,6 @@ async function commitWithJj(
   // jj returns success even with "nothing to commit" scenarios
   // but let's handle any edge cases gracefully
   if (error.includes("Nothing changed") || output.includes("Nothing changed")) {
-    return { success: true, message: "Nothing to commit" };
-  }
-
-  return {
-    success: false,
-    message: "Commit failed",
-    error: error || output,
-  };
-}
-
-/**
- * Commit using git
- */
-async function commitWithGit(
-  message: string,
-  workingDirectory: string,
-): Promise<VcsResult> {
-  // First, stage all changes
-  const addProcess = new Deno.Command("git", {
-    args: ["add", "-A"],
-    cwd: workingDirectory,
-    stdout: "piped",
-    stderr: "piped",
-  });
-
-  const addResult = await addProcess.output();
-  if (addResult.code !== 0) {
-    const error = new TextDecoder().decode(addResult.stderr);
-    return {
-      success: false,
-      message: "Failed to stage changes",
-      error,
-    };
-  }
-
-  // Then commit
-  const commitProcess = new Deno.Command("git", {
-    args: ["commit", "-m", message],
-    cwd: workingDirectory,
-    stdout: "piped",
-    stderr: "piped",
-  });
-
-  const { code, stdout, stderr } = await commitProcess.output();
-  const output = new TextDecoder().decode(stdout);
-  const error = new TextDecoder().decode(stderr);
-
-  if (code === 0) {
-    return { success: true, message: output || "Committed successfully" };
-  }
-
-  // Handle "nothing to commit" case
-  if (
-    output.includes("nothing to commit") ||
-    error.includes("nothing to commit")
-  ) {
     return { success: true, message: "Nothing to commit" };
   }
 
