@@ -119,7 +119,8 @@ export async function runOrchestrator(
       issue = resumeQueue.shift()!;
       isResume = true;
       iteration++;
-      log(`\n--- Iteration ${iteration} ---`, verbose);
+      const cols = Deno.stdout.isTerminal() ? Deno.consoleSize().columns : 80;
+      log(`\n${"─".repeat(cols)}`, verbose);
       log(
         `${bold("Resuming:")} ${cyan(issue.id)} - ${bold(issue.title)}`,
         verbose,
@@ -151,7 +152,8 @@ export async function runOrchestrator(
       // Pick first issue (highest priority)
       issue = readyWork[0];
       iteration++;
-      log(`\n--- Iteration ${iteration} ---`, verbose);
+      const cols = Deno.stdout.isTerminal() ? Deno.consoleSize().columns : 80;
+      log(`\n${"─".repeat(cols)}`, verbose);
       log(
         `${bold("Working on:")} ${cyan(issue.id)} - ${bold(issue.title)}`,
         verbose,
