@@ -15,7 +15,7 @@ bdorc --dangerously-skip-permissions
 # stream claude code output in real-time (runs indefinitely by default)
 bdorc --dangerously-skip-permissions --stream
 
-# limit to 10 iterations (one-shot style)
+# limit to 10 iterations
 bdorc --dangerously-skip-permissions --max-iterations 10
 
 # use a specific model
@@ -23,22 +23,6 @@ bdorc --dangerously-skip-permissions --model claude-sonnet-4-20250514
 
 # quiet mode
 bdorc --dangerously-skip-permissions --quiet
-```
-
-### continuous mode vs one-shot
-
-**continuous mode** (default with `--stream`): runs indefinitely, polling for
-new issues when idle. use this for long-running development sessions.
-
-```bash
-bdorc --dangerously-skip-permissions --stream
-```
-
-**one-shot mode**: processes available issues and exits. use `--max-iterations`
-to limit work.
-
-```bash
-bdorc --dangerously-skip-permissions --max-iterations 5
 ```
 
 ## how it works
@@ -50,8 +34,7 @@ bdorc --dangerously-skip-permissions --max-iterations 5
 5. builds a prompt from issue details and runs claude code
 6. runs quality gates
 7. if gates pass, closes the issue
-8. in stream mode, waits and polls for new work; in one-shot mode, exits when
-   done
+8. repeats for ready issues, polling when idle if `--stream` is enabled
 
 ## configuration
 
