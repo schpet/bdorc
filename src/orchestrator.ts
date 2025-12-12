@@ -120,7 +120,13 @@ export async function runOrchestrator(
       isResume = true;
       iteration++;
       log(`\n--- Iteration ${iteration} ---`, verbose);
-      log(`Resuming: ${issue.id} - ${issue.title}`, verbose);
+      const bold = "\x1b[1m";
+      const cyan = "\x1b[36m";
+      const reset = "\x1b[0m";
+      log(
+        `${bold}Resuming: ${cyan}${issue.id}${reset}${bold} - ${issue.title}${reset}`,
+        verbose,
+      );
     } else {
       // Get ready work
       let readyWork: BeadsIssue[];
@@ -149,7 +155,13 @@ export async function runOrchestrator(
       issue = readyWork[0];
       iteration++;
       log(`\n--- Iteration ${iteration} ---`, verbose);
-      log(`Working on: ${issue.id} - ${issue.title}`, verbose);
+      const bold = "\x1b[1m";
+      const cyan = "\x1b[36m";
+      const reset = "\x1b[0m";
+      log(
+        `${bold}Working on: ${cyan}${issue.id}${reset}${bold} - ${issue.title}${reset}`,
+        verbose,
+      );
 
       // Claim the issue
       try {
