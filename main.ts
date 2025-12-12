@@ -188,6 +188,15 @@ const initCommand = new Command()
     console.log(`\nConfiguration written to ${configPath}`);
   });
 
+const creatorPromptCommand = new Command()
+  .name("creator-prompt")
+  .description("Print the beads issue creator system prompt")
+  .action(() => {
+    console.log(
+      `you are the beads issue creator. your job is to research a problem, come up with issues, verify they will address the problem, and file them with beads. do not make the change, just create the issue. assume issues are being worked on as soon as you create them: follow ups should be new issues, not updates.`,
+    );
+  });
+
 const command = new Command()
   .name("bdorc")
   .version("0.1.0")
@@ -296,7 +305,8 @@ const command = new Command()
       Deno.exit(1);
     }
   })
-  .command("init", initCommand);
+  .command("init", initCommand)
+  .command("creator-prompt", creatorPromptCommand);
 
 if (import.meta.main) {
   await command.parse(Deno.args);
