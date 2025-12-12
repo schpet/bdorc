@@ -114,5 +114,4 @@ if no config file exists, no gates are run.
 - [deno](https://deno.land/)
 - [claude code cli](https://docs.anthropic.com/en/docs/claude-code) (`claude`
   command)
-- [beads](https://github.com/anthropics/claude-code/tree/main/.agent-skills-marketplace/beads-marketplace)
-  (`bd` command)
+- [beads](https://github.com/steveyegge/beads) (`bd` command)
