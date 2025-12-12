@@ -1,8 +1,8 @@
 /**
  * bdorc - Beads orchestrator for Claude Code
  *
- * Runs Claude Code in a loop until all beads tasks are done,
- * with quality gates for tests, typecheck, format, and lint.
+ * Processes beads issues as they become ready, waiting for new work when idle.
+ * Quality gates ensure code quality.
  */
 
 export * from "./beads.ts";
