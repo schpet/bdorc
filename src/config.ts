@@ -7,7 +7,6 @@ import { parse as parseToml } from "@std/toml";
 export interface VcsConfigRaw {
   enabled?: boolean;
   command?: string;
-  commit_format?: string;
 }
 
 export interface BdorcConfig {

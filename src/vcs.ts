@@ -8,7 +8,6 @@ import { loadConfig } from "./config.ts";
 export interface VcsConfig {
   enabled: boolean;
   command: "jj";
-  commitFormat: string;
 }
 
 export interface VcsResult {
@@ -20,7 +19,6 @@ export interface VcsResult {
 const DEFAULT_VCS_CONFIG: VcsConfig = {
   enabled: false,
   command: "jj",
-  commitFormat: "{id}: {title}",
 };
 
 /**
@@ -41,23 +39,7 @@ export async function loadVcsConfig(
   return {
     enabled: typeof vcs.enabled === "boolean" ? vcs.enabled : true,
     command: "jj",
-    commitFormat: typeof vcs.commit_format === "string"
-      ? vcs.commit_format
-      : DEFAULT_VCS_CONFIG.commitFormat,
   };
-}
-
-/**
- * Format commit message using template string
- * Supports: {id}, {title}
- */
-export function formatCommitMessage(
-  issue: BeadsIssue,
-  format: string,
-): string {
-  return format
-    .replace("{id}", issue.id)
-    .replace("{title}", issue.title);
 }
 
 /**
@@ -72,7 +54,7 @@ export async function commitWork(
     return { success: true, message: "VCS disabled, skipping commit" };
   }
 
-  const message = formatCommitMessage(issue, config.commitFormat);
+  const message = `${issue.id}: ${issue.title}`;
 
   return await commitWithJj(message, workingDirectory);
 }
