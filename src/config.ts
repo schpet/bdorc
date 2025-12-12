@@ -5,12 +5,7 @@
 import { parse as parseToml } from "@std/toml";
 
 export interface BdorcConfig {
-  gates?: {
-    test?: string;
-    typecheck?: string;
-    format?: string;
-    lint?: string;
-  };
+  gates?: string[];
 }
 
 /**

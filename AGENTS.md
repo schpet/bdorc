@@ -152,3 +152,36 @@ example: `bd create --help` shows `--parent`, `--deps`, `--assignee`, etc.
 - Do NOT clutter repo root with planning documents
 
 For more details, see README.md and QUICKSTART.md.
+
+## Testing Guidelines
+
+**Keep tests fast.** The test suite should run in under 1 second.
+
+### What to avoid
+
+- **Subprocess spawning**: Tests that call external commands (`bd`, `deno test`, `deno check`, etc.) are slow (5-15 seconds each)
+- **Integration tests in the main suite**: Move tests that require real CLI tools to a separate file or delete them
+- **Temp directory setup/teardown**: Each `Deno.makeTempDir()` + `bd init` adds ~5s overhead
+
+### Preferred approach
+
+- **Unit test pure functions**: Test `buildIssuePrompt()`, `parseCommand()`, `formatGateResults()` etc. directly
+- **Mock external dependencies**: Instead of calling real `bd` CLI, mock the function that calls it
+- **Keep integration tests separate**: If needed, put in `*_integration_test.ts` and exclude from default test run
+
+### Example: Fast vs Slow
+
+```typescript
+// SLOW - spawns subprocess, takes 5+ seconds
+Deno.test("beads: create and get issue", async () => {
+  const testDir = await Deno.makeTempDir();
+  await new Deno.Command("bd", { args: ["init"], cwd: testDir }).output();
+  // ... more bd commands
+});
+
+// FAST - pure function, takes <1ms
+Deno.test("buildIssuePrompt: includes title", () => {
+  const prompt = buildIssuePrompt({ id: "1", title: "Test", description: "" });
+  assertEquals(prompt.includes("Test"), true);
+});
+```

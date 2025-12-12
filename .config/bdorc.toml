@@ -1,0 +1,5 @@
+gates = [
+  "deno fmt --check",
+  "deno lint",
+  "deno test -A",
+]

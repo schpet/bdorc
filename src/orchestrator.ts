@@ -19,7 +19,6 @@ import {
   runClaudeCode,
 } from "./claude.ts";
 import {
-  formatGateResults,
   hasGatesConfigured,
   loadGatesConfig,
   runAllGates,
@@ -168,7 +167,6 @@ export async function runOrchestrator(
     // Run quality gates
     log(`Running quality gates...`, verbose);
     const gatesResult = await runAllGates(gatesConfig);
-    log(formatGateResults(gatesResult.results), verbose);
 
     if (!gatesResult.passed) {
       gateFailures++;
@@ -199,7 +197,6 @@ export async function runOrchestrator(
 
       // Re-run gates after fix
       const retryResult = await runAllGates(gatesConfig);
-      log(formatGateResults(retryResult.results), verbose);
 
       if (!retryResult.passed) {
         // Still failing - add notes and continue to next iteration

@@ -1,5 +1,5 @@
 /**
- * Quality gates module - tests, typecheck, format, lint
+ * Quality gates module - generic command runner
  */
 
 import { loadConfig, parseCommand } from "./config.ts";
@@ -11,12 +11,13 @@ export interface GateResult {
   error: string;
 }
 
+export interface Gate {
+  command: string[];
+}
+
 export interface GatesConfig {
   workingDirectory: string;
-  testCommand?: string[];
-  typecheckCommand?: string[];
-  formatCommand?: string[];
-  lintCommand?: string[];
+  gates: Gate[];
 }
 
 /**
@@ -27,41 +28,28 @@ export async function loadGatesConfig(
 ): Promise<GatesConfig> {
   const config = await loadConfig(workingDirectory);
 
-  if (!config?.gates) {
-    return { workingDirectory };
+  if (!config?.gates || !Array.isArray(config.gates)) {
+    return { workingDirectory, gates: [] };
   }
 
-  const gatesConfig: GatesConfig = { workingDirectory };
+  const gates: Gate[] = config.gates
+    .filter((cmd): cmd is string => typeof cmd === "string" && cmd.length > 0)
+    .map((cmd) => ({ command: parseCommand(cmd) }));
 
-  if (config.gates.test) {
-    gatesConfig.testCommand = parseCommand(config.gates.test);
-  }
-  if (config.gates.typecheck) {
-    gatesConfig.typecheckCommand = parseCommand(config.gates.typecheck);
-  }
-  if (config.gates.format) {
-    gatesConfig.formatCommand = parseCommand(config.gates.format);
-  }
-  if (config.gates.lint) {
-    gatesConfig.lintCommand = parseCommand(config.gates.lint);
-  }
-
-  return gatesConfig;
+  return { workingDirectory, gates };
 }
 
 /**
  * Check if any gates are configured
  */
 export function hasGatesConfigured(config: GatesConfig): boolean {
-  return !!(
-    config.testCommand ||
-    config.typecheckCommand ||
-    config.formatCommand ||
-    config.lintCommand
-  );
+  return config.gates.length > 0;
 }
 
-async function runGate(
+/**
+ * Run a single gate
+ */
+export async function runGate(
   name: string,
   command: string[],
   workingDirectory: string,
@@ -85,65 +73,47 @@ async function runGate(
 }
 
 /**
- * Run tests
+ * Derive a gate name from its command
  */
-export async function runTests(
-  config: GatesConfig,
-): Promise<GateResult | null> {
-  if (!config.testCommand) return null;
-  return await runGate("tests", config.testCommand, config.workingDirectory);
+function getGateName(command: string[]): string {
+  return command.join(" ");
 }
 
 /**
- * Run type checking
- */
-export async function runTypecheck(
-  config: GatesConfig,
-): Promise<GateResult | null> {
-  if (!config.typecheckCommand) return null;
-  return await runGate(
-    "typecheck",
-    config.typecheckCommand,
-    config.workingDirectory,
-  );
-}
-
-/**
- * Run format check
- */
-export async function runFormat(
-  config: GatesConfig,
-): Promise<GateResult | null> {
-  if (!config.formatCommand) return null;
-  return await runGate("format", config.formatCommand, config.workingDirectory);
-}
-
-/**
- * Run linter
- */
-export async function runLint(config: GatesConfig): Promise<GateResult | null> {
-  if (!config.lintCommand) return null;
-  return await runGate("lint", config.lintCommand, config.workingDirectory);
-}
-
-/**
- * Run all quality gates
+ * Run all quality gates (sequentially with spinner feedback)
  */
 export async function runAllGates(
   config: GatesConfig,
+  options?: { showSpinner?: boolean },
 ): Promise<{ passed: boolean; results: GateResult[] }> {
-  const allResults = await Promise.all([
-    runTests(config),
-    runTypecheck(config),
-    runFormat(config),
-    runLint(config),
-  ]);
+  if (config.gates.length === 0) {
+    return { passed: true, results: [] };
+  }
 
-  // Filter out null results (unconfigured gates)
-  const results = allResults.filter((r): r is GateResult => r !== null);
+  const showSpinner = options?.showSpinner ?? Deno.stdout.isTerminal();
+  const results: GateResult[] = [];
 
-  // If no gates configured, consider it passed
-  const passed = results.length === 0 || results.every((r) => r.passed);
+  for (const gate of config.gates) {
+    const name = getGateName(gate.command);
+
+    let spinner: { start: () => void; stop: () => void } | null = null;
+    if (showSpinner) {
+      const { Spinner } = await import("@std/cli/unstable-spinner");
+      spinner = new Spinner({ message: name });
+      spinner.start();
+    }
+
+    const result = await runGate(name, gate.command, config.workingDirectory);
+    results.push(result);
+
+    if (spinner) {
+      spinner.stop();
+      const status = result.passed ? "✓" : "✗";
+      console.log(`${status} ${name}`);
+    }
+  }
+
+  const passed = results.every((r) => r.passed);
 
   return { passed, results };
 }

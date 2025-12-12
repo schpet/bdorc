@@ -5,6 +5,12 @@
 import { Command } from "@cliffy/command";
 import { Confirm } from "@cliffy/prompt";
 import { type BeadsIssue, getIssuesByStatus } from "./src/beads.ts";
+import { buildFixPrompt, runClaudeCode } from "./src/claude.ts";
+import {
+  hasGatesConfigured,
+  loadGatesConfig,
+  runAllGates,
+} from "./src/gates.ts";
 import { runOrchestrator } from "./src/mod.ts";
 
 /**
@@ -51,6 +57,48 @@ const command = new Command()
   .action(async (options) => {
     console.log("bdorc - Beads orchestrator for Claude Code");
     console.log("==========================================");
+
+    // Run initial gate check
+    const gatesConfig = await loadGatesConfig(options.dir);
+
+    if (hasGatesConfigured(gatesConfig)) {
+      console.log("\nRunning gates...");
+      const gatesResult = await runAllGates(gatesConfig);
+
+      if (!gatesResult.passed) {
+        const failures = gatesResult.results
+          .filter((r) => !r.passed)
+          .map((r) => ({ name: r.name, output: r.output, error: r.error }));
+
+        const fixPrompt = buildFixPrompt("initial-gates", failures);
+        console.log("\n--- Prompt to Claude ---");
+        console.log(fixPrompt);
+        console.log("------------------------\n");
+        console.log("Running Claude Code to fix gate failures...");
+        const fixResult = await runClaudeCode(fixPrompt, {
+          workingDirectory: options.dir,
+          model: options.model,
+          stream: options.stream ?? false,
+          dangerouslySkipPermissions: options.dangerouslySkipPermissions ?? false,
+        });
+
+        if (!fixResult.success) {
+          console.error(`Claude Code failed: ${fixResult.error}`);
+          Deno.exit(1);
+        }
+
+        // Re-run gates after fix
+        console.log("\nRe-running gates...");
+        const retryResult = await runAllGates(gatesConfig);
+
+        if (!retryResult.passed) {
+          console.error("Gates still failing after fix attempt.");
+          Deno.exit(1);
+        }
+
+        console.log("Gates now passing!");
+      }
+    }
 
     // Check for stale in_progress issues
     const staleIssues = await checkStaleIssues(options.dir);

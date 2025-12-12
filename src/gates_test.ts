@@ -4,10 +4,7 @@ import {
   type GateResult,
   type GatesConfig,
   runAllGates,
-  runFormat,
-  runLint,
-  runTests,
-  runTypecheck,
+  runGate,
 } from "./gates.ts";
 
 async function createTestDir(): Promise<string> {
@@ -57,85 +54,27 @@ async function cleanup(testDir: string) {
 }
 
 Deno.test({
-  name: "gates: runTests passes for valid test file",
+  name: "gates: runGate passes for valid test",
   async fn() {
     const testDir = await createTestDir();
     await setupTestProject(testDir);
-    const config: GatesConfig = {
-      workingDirectory: testDir,
-      testCommand: ["deno", "test"],
-    };
 
-    const result = await runTests(config);
-    assertEquals(result?.name, "tests");
-    assertEquals(result?.passed, true);
+    const result = await runGate("tests", ["deno", "test"], testDir);
+    assertEquals(result.name, "tests");
+    assertEquals(result.passed, true);
 
     await cleanup(testDir);
   },
 });
 
 Deno.test({
-  name: "gates: runTests returns null when not configured",
+  name: "gates: runGate fails for invalid command",
   async fn() {
     const testDir = await createTestDir();
-    const config: GatesConfig = { workingDirectory: testDir };
 
-    const result = await runTests(config);
-    assertEquals(result, null);
-
-    await cleanup(testDir);
-  },
-});
-
-Deno.test({
-  name: "gates: runTypecheck passes for valid TypeScript",
-  async fn() {
-    const testDir = await createTestDir();
-    await setupTestProject(testDir);
-    const config: GatesConfig = {
-      workingDirectory: testDir,
-      typecheckCommand: ["deno", "check", "test_file.ts"],
-    };
-
-    const result = await runTypecheck(config);
-    assertEquals(result?.name, "typecheck");
-    assertEquals(result?.passed, true);
-
-    await cleanup(testDir);
-  },
-});
-
-Deno.test({
-  name: "gates: runFormat passes for formatted code",
-  async fn() {
-    const testDir = await createTestDir();
-    await setupTestProject(testDir);
-    const config: GatesConfig = {
-      workingDirectory: testDir,
-      formatCommand: ["deno", "fmt", "--check"],
-    };
-
-    const result = await runFormat(config);
-    assertEquals(result?.name, "format");
-    assertEquals(result?.passed, true);
-
-    await cleanup(testDir);
-  },
-});
-
-Deno.test({
-  name: "gates: runLint passes for valid code",
-  async fn() {
-    const testDir = await createTestDir();
-    await setupTestProject(testDir);
-    const config: GatesConfig = {
-      workingDirectory: testDir,
-      lintCommand: ["deno", "lint"],
-    };
-
-    const result = await runLint(config);
-    assertEquals(result?.name, "lint");
-    assertEquals(result?.passed, true);
+    const result = await runGate("check", ["deno", "check", "nonexistent.ts"], testDir);
+    assertEquals(result.name, "check");
+    assertEquals(result.passed, false);
 
     await cleanup(testDir);
   },
@@ -148,10 +87,12 @@ Deno.test({
     await setupTestProject(testDir);
     const config: GatesConfig = {
       workingDirectory: testDir,
-      testCommand: ["deno", "test"],
-      typecheckCommand: ["deno", "check", "test_file.ts"],
-      formatCommand: ["deno", "fmt", "--check"],
-      lintCommand: ["deno", "lint"],
+      gates: [
+        { command: ["deno", "test"] },
+        { command: ["deno", "check", "test_file.ts"] },
+        { command: ["deno", "fmt", "--check"] },
+        { command: ["deno", "lint"] },
+      ],
     };
 
     const { passed, results } = await runAllGates(config);
@@ -167,7 +108,7 @@ Deno.test({
   name: "gates: runAllGates passes when no gates configured",
   async fn() {
     const testDir = await createTestDir();
-    const config: GatesConfig = { workingDirectory: testDir };
+    const config: GatesConfig = { workingDirectory: testDir, gates: [] };
 
     const { passed, results } = await runAllGates(config);
     assertEquals(passed, true);
@@ -191,22 +132,22 @@ Deno.test("gates: formatGateResults formats output correctly", () => {
 });
 
 Deno.test({
-  name: "gates: custom commands are used when provided",
+  name: "gates: custom gates work correctly",
   async fn() {
     const testDir = await createTestDir();
-    await setupTestProject(testDir);
     const config: GatesConfig = {
       workingDirectory: testDir,
-      testCommand: ["echo", "custom test"],
-      typecheckCommand: ["echo", "custom typecheck"],
-      formatCommand: ["echo", "custom format"],
-      lintCommand: ["echo", "custom lint"],
+      gates: [
+        { command: ["echo", "hello"] },
+        { command: ["echo", "world"] },
+      ],
     };
 
     const { passed, results } = await runAllGates(config);
     assertEquals(passed, true);
-    // All echo commands succeed
-    assertEquals(results.every((r) => r.passed), true);
+    assertEquals(results.length, 2);
+    assertEquals(results[0].name, "echo hello");
+    assertEquals(results[1].name, "echo world");
 
     await cleanup(testDir);
   },

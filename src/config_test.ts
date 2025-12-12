@@ -44,45 +44,45 @@ Deno.test({
 });
 
 Deno.test({
-  name: "loadConfig: parses TOML config file",
+  name: "loadConfig: parses TOML config file with gates array",
   async fn() {
     const testDir = await Deno.makeTempDir({ prefix: "bdorc_config_test_" });
     await Deno.mkdir(`${testDir}/.config`);
     await Deno.writeTextFile(
       `${testDir}/.config/bdorc.toml`,
-      `[gates]
-test = "npm test"
-typecheck = "npx tsc --noEmit"
-format = "npx prettier --check ."
-lint = "npx eslint ."
+      `gates = [
+  "npm test",
+  "npx tsc --noEmit",
+  "npx prettier --check .",
+]
 `,
     );
 
     const config = await loadConfig(testDir);
-    assertEquals(config?.gates?.test, "npm test");
-    assertEquals(config?.gates?.typecheck, "npx tsc --noEmit");
-    assertEquals(config?.gates?.format, "npx prettier --check .");
-    assertEquals(config?.gates?.lint, "npx eslint .");
+    assertEquals(Array.isArray(config?.gates), true);
+    assertEquals(config?.gates?.length, 3);
+    assertEquals(config?.gates?.[0], "npm test");
+    assertEquals(config?.gates?.[1], "npx tsc --noEmit");
+    assertEquals(config?.gates?.[2], "npx prettier --check .");
 
     await Deno.remove(testDir, { recursive: true });
   },
 });
 
 Deno.test({
-  name: "loadConfig: handles partial config",
+  name: "loadConfig: handles single gate",
   async fn() {
     const testDir = await Deno.makeTempDir({ prefix: "bdorc_config_test_" });
     await Deno.mkdir(`${testDir}/.config`);
     await Deno.writeTextFile(
       `${testDir}/.config/bdorc.toml`,
-      `[gates]
-test = "cargo test"
+      `gates = ["cargo build"]
 `,
     );
 
     const config = await loadConfig(testDir);
-    assertEquals(config?.gates?.test, "cargo test");
-    assertEquals(config?.gates?.typecheck, undefined);
+    assertEquals(config?.gates?.length, 1);
+    assertEquals(config?.gates?.[0], "cargo build");
 
     await Deno.remove(testDir, { recursive: true });
   },
