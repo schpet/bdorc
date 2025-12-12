@@ -3,3 +3,6 @@ gates = [
   "deno lint",
   "deno test -A",
 ]
+
+[vcs]
+command = "jj"
