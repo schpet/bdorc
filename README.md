@@ -1,7 +1,7 @@
 # bdorc
 
-beads orchestrator for claude code. runs claude code in a loop until all beads
-tasks are done, with quality gates.
+beads orchestrator for claude code. processes beads issues as they become ready,
+waiting for new work when idle. quality gates ensure code quality.
 
 ## usage
 
@@ -53,7 +53,8 @@ bdorc --dangerously-skip-permissions --max-iterations 5
 5. builds a prompt from issue details and runs claude code
 6. runs quality gates
 7. if gates pass, closes the issue
-8. repeats until no ready work (or polls for new work in stream mode)
+8. in stream mode, waits and polls for new work; in one-shot mode, exits when
+   done
 
 ## configuration
 
