@@ -65,6 +65,35 @@ const initCommand = new Command()
   .name("init")
   .description("Initialize bdorc configuration")
   .action(async () => {
+    const initBeads = await Confirm.prompt({
+      message: "Initialize beads in this repo?",
+      default: true,
+    });
+
+    if (initBeads) {
+      console.log("Initializing beads...");
+
+      const bdInit = new Deno.Command("bd", {
+        args: ["init", "--stealth"],
+        stdout: "inherit",
+        stderr: "inherit",
+      });
+      await bdInit.output();
+
+      console.log("Running beads onboarding...");
+
+      const claude = new Deno.Command("claude", {
+        args: [
+          "--dangerously-skip-permissions",
+          "--print",
+          "run 'bd onboard' and follow the instructions, but update CLAUDE.local.md instead of CLAUDE.md",
+        ],
+        stdout: "inherit",
+        stderr: "inherit",
+      });
+      await claude.output();
+    }
+
     const configPath = `${Deno.cwd()}/.config/bdorc.toml`;
 
     const existingConfig = await loadConfig(Deno.cwd());
