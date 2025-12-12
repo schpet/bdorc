@@ -9,9 +9,14 @@ export interface VcsConfigRaw {
   command?: string;
 }
 
+export interface ReviewConfigRaw {
+  prompt: string;
+}
+
 export interface BdorcConfig {
   gates?: string[];
   vcs?: VcsConfigRaw;
+  reviews?: ReviewConfigRaw[];
 }
 
 /**

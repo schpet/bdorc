@@ -19,6 +19,11 @@ import {
   runClaudeCode,
 } from "./claude.ts";
 import { hasGatesConfigured, loadGatesConfig, runAllGates } from "./gates.ts";
+import {
+  hasReviewsConfigured,
+  loadReviewsConfig,
+  runAllReviews,
+} from "./reviews.ts";
 import { commitWork, loadVcsConfig } from "./vcs.ts";
 
 export interface OrchestratorConfig {
@@ -70,6 +75,9 @@ export async function runOrchestrator(
   // Load gates config from .config/bdorc.toml (or use defaults)
   const gatesConfig = await loadGatesConfig(config.workingDirectory);
 
+  // Load reviews config
+  const reviewsConfig = await loadReviewsConfig(config.workingDirectory);
+
   // Load VCS config
   const vcsConfig = await loadVcsConfig(config.workingDirectory);
 
@@ -89,6 +97,13 @@ export async function runOrchestrator(
     );
   } else {
     log(`Loaded gates config from .config/bdorc.toml`, verbose);
+  }
+
+  if (hasReviewsConfigured(reviewsConfig)) {
+    log(
+      `Loaded ${reviewsConfig.reviews.length} review(s) from .config/bdorc.toml`,
+      verbose,
+    );
   }
   log(`Max iterations: ${maxIterations}`, verbose);
 
@@ -169,6 +184,32 @@ export async function runOrchestrator(
     }
 
     log(`Claude Code completed successfully`, verbose);
+
+    // Run reviews (if configured)
+    if (hasReviewsConfigured(reviewsConfig)) {
+      log(`Running reviews...`, verbose);
+      const reviewsResult = await runAllReviews(reviewsConfig, claudeConfig);
+
+      if (!reviewsResult.success) {
+        log(`Reviews failed: ${reviewsResult.error}`, verbose);
+        await addNotes(
+          issue.id,
+          `Reviews failed after ${reviewsResult.reviewsRun} review(s): ${
+            reviewsResult.error?.slice(0, 500)
+          }`,
+          beadsConfig,
+        );
+        // Keep in_progress for next iteration to retry
+        continue;
+      }
+
+      if (reviewsResult.reviewsRun > 0) {
+        log(
+          `Completed ${reviewsResult.reviewsRun} review(s) successfully`,
+          verbose,
+        );
+      }
+    }
 
     // Run quality gates
     log(`Running quality gates...`, verbose);
