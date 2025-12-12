@@ -161,7 +161,9 @@ function displayStreamEvent(event: Record<string, unknown>): void {
         const content = message.content as Array<Record<string, unknown>>;
         for (const block of content) {
           if (block.type === "text" && block.text) {
-            Deno.stdout.writeSync(new TextEncoder().encode(block.text as string));
+            Deno.stdout.writeSync(
+              new TextEncoder().encode(block.text as string),
+            );
           } else if (block.type === "tool_use") {
             const name = block.name as string;
             console.log(`\n[Tool: ${name}]`);

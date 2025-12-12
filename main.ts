@@ -89,7 +89,8 @@ const command = new Command()
           workingDirectory: options.dir,
           model: options.model,
           stream: options.stream ?? false,
-          dangerouslySkipPermissions: options.dangerouslySkipPermissions ?? false,
+          dangerouslySkipPermissions: options.dangerouslySkipPermissions ??
+            false,
         });
 
         if (!fixResult.success) {

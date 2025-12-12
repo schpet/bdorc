@@ -1,21 +1,22 @@
 # bdorc
 
-Beads orchestrator for Claude Code. Runs Claude Code in a loop until all beads tasks are done, with quality gates.
+Beads orchestrator for Claude Code. Runs Claude Code in a loop until all beads
+tasks are done, with quality gates.
 
 ## Usage
 
 ```bash
 # Run in current directory (uses Deno defaults for quality gates)
-deno run --allow-run --allow-read main.ts
+bdorc
 
 # Run in a specific directory
-deno run --allow-run --allow-read main.ts -d /path/to/project
+bdorc -d /path/to/project
 
 # Skip permission prompts (for automated/CI use)
-deno run --allow-run --allow-read main.ts --dangerously-skip-permissions
+bdorc --dangerously-skip-permissions
 
 # Limit iterations
-deno run --allow-run --allow-read main.ts -n 10
+bdorc -n 10
 ```
 
 ## How It Works
@@ -44,6 +45,7 @@ Commands are full shell commands as strings.
 ### Language Examples
 
 **Node.js / TypeScript:**
+
 ```toml
 [gates]
 test = "npm test"
@@ -53,6 +55,7 @@ lint = "npx eslint ."
 ```
 
 **Rust:**
+
 ```toml
 [gates]
 test = "cargo test"
@@ -62,6 +65,7 @@ lint = "cargo clippy -- -D warnings"
 ```
 
 **Go:**
+
 ```toml
 [gates]
 test = "go test ./..."
@@ -71,6 +75,7 @@ lint = "golangci-lint run"
 ```
 
 **Python:**
+
 ```toml
 [gates]
 test = "pytest"

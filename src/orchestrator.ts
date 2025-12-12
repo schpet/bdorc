@@ -18,11 +18,7 @@ import {
   type GateFailure,
   runClaudeCode,
 } from "./claude.ts";
-import {
-  hasGatesConfigured,
-  loadGatesConfig,
-  runAllGates,
-} from "./gates.ts";
+import { hasGatesConfigured, loadGatesConfig, runAllGates } from "./gates.ts";
 
 export interface OrchestratorConfig {
   workingDirectory: string;
@@ -119,7 +115,9 @@ export async function runOrchestrator(
 
       if (readyWork.length === 0) {
         log(
-          `No ready work found. Waiting ${pollIntervalMs / 1000}s... (Ctrl+C to quit)`,
+          `No ready work found. Waiting ${
+            pollIntervalMs / 1000
+          }s... (Ctrl+C to quit)`,
           verbose,
         );
         await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
@@ -186,7 +184,9 @@ export async function runOrchestrator(
         log(`Claude Code fix failed: ${fixResult.error}`, verbose);
         await addNotes(
           issue.id,
-          `Fix attempt failed (exit ${fixResult.exitCode}): ${fixResult.error.slice(0, 500)}`,
+          `Fix attempt failed (exit ${fixResult.exitCode}): ${
+            fixResult.error.slice(0, 500)
+          }`,
           beadsConfig,
         );
         // Keep in_progress for next iteration to retry
