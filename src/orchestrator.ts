@@ -25,6 +25,7 @@ import {
   runAllReviews,
 } from "./reviews.ts";
 import { commitWork, loadVcsConfig } from "./vcs.ts";
+import { bold, cyan, yellow } from "@std/fmt/colors";
 
 export interface OrchestratorConfig {
   workingDirectory: string;
@@ -92,8 +93,9 @@ export async function runOrchestrator(
   // Warn if no gates configured
   if (!hasGatesConfigured(gatesConfig)) {
     console.log(
-      "%cWarning: No quality gates configured. Create .config/bdorc.toml to add gates.",
-      "color: yellow",
+      yellow(
+        "Warning: No quality gates configured. Create .config/bdorc.toml to add gates.",
+      ),
     );
   } else {
     log(`Loaded gates config from .config/bdorc.toml`, verbose);
@@ -120,11 +122,8 @@ export async function runOrchestrator(
       isResume = true;
       iteration++;
       log(`\n--- Iteration ${iteration} ---`, verbose);
-      const bold = "\x1b[1m";
-      const cyan = "\x1b[36m";
-      const reset = "\x1b[0m";
       log(
-        `${bold}Resuming: ${cyan}${issue.id}${reset}${bold} - ${issue.title}${reset}`,
+        `${bold("Resuming:")} ${cyan(issue.id)} - ${bold(issue.title)}`,
         verbose,
       );
     } else {
@@ -155,11 +154,8 @@ export async function runOrchestrator(
       issue = readyWork[0];
       iteration++;
       log(`\n--- Iteration ${iteration} ---`, verbose);
-      const bold = "\x1b[1m";
-      const cyan = "\x1b[36m";
-      const reset = "\x1b[0m";
       log(
-        `${bold}Working on: ${cyan}${issue.id}${reset}${bold} - ${issue.title}${reset}`,
+        `${bold("Working on:")} ${cyan(issue.id)} - ${bold(issue.title)}`,
         verbose,
       );
 
