@@ -106,7 +106,6 @@ if no config file exists, no gates are run.
 | `--max-turns <turns>`            | max turns per claude code session      | claude code default            |
 | `-s, --stream`                   | stream claude code output in real-time | false                          |
 | `-q, --quiet`                    | less output                            | false                          |
-| `-y, --yes`                      | skip confirmation prompts              | false                          |
 | `--dangerously-skip-permissions` | skip permission prompts (**required**) | -                              |
 | `-h, --help`                     | show help                              | -                              |
 

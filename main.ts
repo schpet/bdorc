@@ -47,7 +47,6 @@ const command = new Command()
     "--dangerously-skip-permissions",
     "Skip permission prompts (CAUTION!)",
   )
-  .option("-y, --yes", "Skip confirmation prompts")
   .action(async (options) => {
     if (!options.dangerouslySkipPermissions) {
       console.error(
