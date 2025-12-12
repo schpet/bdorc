@@ -54,7 +54,23 @@ export async function commitWork(
     return { success: true, message: "VCS disabled, skipping commit" };
   }
 
-  const message = `${issue.title}\n\nBeads: ${issue.id}`;
+  const parts = [issue.title, ""];
+
+  if (issue.description) {
+    parts.push(issue.description, "");
+  }
+
+  if (issue.design) {
+    parts.push("Design:", issue.design, "");
+  }
+
+  if (issue.acceptance_criteria) {
+    parts.push("Acceptance:", issue.acceptance_criteria, "");
+  }
+
+  parts.push(`Beads: ${issue.id}`);
+
+  const message = parts.join("\n");
 
   return await commitWithJj(message, workingDirectory);
 }
