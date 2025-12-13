@@ -2,7 +2,7 @@
   "name": "@schpet/bdorc",
   "version": "0.1.0",
   "license": "ISC",
-  "exports": "./mod.ts",
+  "exports": "./main.ts",
   "tasks": {
     "run": "deno run --allow-run --allow-read main.ts",
     "test": "deno test --allow-run --allow-read --allow-write",
@@ -18,5 +18,13 @@
     "@std/fmt/colors": "jsr:@std/fmt@^1/colors",
     "@cliffy/command": "jsr:@cliffy/command@^1.0.0-rc.8",
     "@cliffy/prompt": "jsr:@cliffy/prompt@^1.0.0-rc.8"
+  },
+  "publish": {
+    "include": [
+      "main.ts",
+      "src/",
+      "README.md",
+      "LICENSE"
+    ]
   }
 }
