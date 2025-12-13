@@ -3,6 +3,15 @@
 beads orchestrator for claude code. processes beads issues as they become ready,
 waiting for new work when idle. quality gates ensure code quality.
 
+## status
+
+**this project is experimental and in early development.**
+
+current limitations:
+
+- runs claude code in a sequential for loop (no parallelization)
+- only supports claude code as the agent (no support for other ai agents/models)
+
 ## usage
 
 bdorc **requires** `--dangerously-skip-permissions` since it runs claude code
