@@ -3,6 +3,18 @@
 beads orchestrator for claude code. processes beads issues as they become ready,
 waiting for new work when idle. quality gates ensure code quality.
 
+## install
+
+```bash
+deno install -A -g -f -n bdorc jsr:@schpet/bdorc
+```
+
+or, if you've cloned the repo:
+
+```bash
+deno install -c ./deno.json -A -g -f -n bdorc ./main.ts
+```
+
 ## status
 
 **this project is experimental and in early development.**
