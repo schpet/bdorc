@@ -1,18 +1,22 @@
 {
-  "tasks": {
-    "run": "deno run --allow-run --allow-read main.ts",
-    "test": "deno test --allow-run --allow-read --allow-write",
-    "check": "deno check **/*.ts",
-    "fmt": "deno fmt",
-    "fmt:check": "deno fmt --check",
-    "lint": "deno lint"
-  },
-  "imports": {
-    "@std/assert": "jsr:@std/assert@1",
-    "@std/toml": "jsr:@std/toml@1",
-    "@std/cli": "jsr:@std/cli@^1.0.12",
-    "@std/fmt/colors": "jsr:@std/fmt@^1/colors",
-    "@cliffy/command": "jsr:@cliffy/command@^1.0.0-rc.8",
-    "@cliffy/prompt": "jsr:@cliffy/prompt@^1.0.0-rc.8"
-  }
+	"name": "@schpet/bdorc",
+	"version": "0.1.0",
+	"license": "ISC",
+	"exports": "./mod.ts",
+	"tasks": {
+		"run": "deno run --allow-run --allow-read main.ts",
+		"test": "deno test --allow-run --allow-read --allow-write",
+		"check": "deno check **/*.ts",
+		"fmt": "deno fmt",
+		"fmt:check": "deno fmt --check",
+		"lint": "deno lint"
+	},
+	"imports": {
+		"@std/assert": "jsr:@std/assert@1",
+		"@std/toml": "jsr:@std/toml@1",
+		"@std/cli": "jsr:@std/cli@^1.0.12",
+		"@std/fmt/colors": "jsr:@std/fmt@^1/colors",
+		"@cliffy/command": "jsr:@cliffy/command@^1.0.0-rc.8",
+		"@cliffy/prompt": "jsr:@cliffy/prompt@^1.0.0-rc.8"
+	}
 }
