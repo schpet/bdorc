@@ -6,6 +6,18 @@ import {
   loadVcsConfig,
 } from "./vcs.ts";
 
+async function countJjCommits(workingDirectory: string): Promise<number> {
+  const cmd = new Deno.Command("jj", {
+    args: ["log", "--no-graph", "-T", "commit_id ++ '\\n'"],
+    cwd: workingDirectory,
+    stdout: "piped",
+    stderr: "null",
+  });
+  const { stdout } = await cmd.output();
+  const output = new TextDecoder().decode(stdout);
+  return output.trim().split("\n").filter(Boolean).length;
+}
+
 Deno.test({
   name: "loadVcsConfig: returns disabled config when no vcs section",
   async fn() {
@@ -87,7 +99,7 @@ Deno.test({
 
 Deno.test({
   name:
-    "commitWork: returns no changes message when VCS enabled but no changes",
+    "commitWork: returns no changes message and creates no commit when VCS enabled but no changes",
   async fn() {
     const testDir = await Deno.makeTempDir({ prefix: "bdorc_vcs_test_" });
 
@@ -99,6 +111,8 @@ Deno.test({
       stderr: "null",
     });
     await init.output();
+
+    const countBefore = await countJjCommits(testDir);
 
     const result = await commitWork(
       {
@@ -121,8 +135,11 @@ Deno.test({
       testDir,
     );
 
+    const countAfter = await countJjCommits(testDir);
+
     assertEquals(result.success, true);
     assertEquals(result.message, "No changes to commit");
+    assertEquals(countAfter, countBefore, "No new commit should be created");
 
     await Deno.remove(testDir, { recursive: true });
   },
