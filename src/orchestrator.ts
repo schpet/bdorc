@@ -26,6 +26,7 @@ import {
 } from "./reviews.ts";
 import { commitWork, loadVcsConfig } from "./vcs.ts";
 import { systemLog, systemWarn } from "./system-log.ts";
+import { createSleepInhibitor } from "./sleep-inhibitor.ts";
 import { bold, cyan } from "@std/fmt/colors";
 
 export interface OrchestratorConfig {
@@ -74,6 +75,8 @@ export async function runOrchestrator(
 
   // Load VCS config
   const vcsConfig = await loadVcsConfig(config.workingDirectory);
+
+  const sleepInhibitor = createSleepInhibitor();
 
   const completed: string[] = [];
   const failed: string[] = [];
@@ -135,6 +138,8 @@ export async function runOrchestrator(
       }
 
       if (readyWork.length === 0) {
+        sleepInhibitor.disable();
+
         // Print idle message once when we first become idle
         if (!idleMessagePrinted && verbose) {
           const pollSeconds = Math.round(pollIntervalMs / 1000);
@@ -173,6 +178,8 @@ export async function runOrchestrator(
         continue;
       }
     }
+
+    sleepInhibitor.enable();
 
     // Build prompt and run Claude Code
     const prompt = isResume
@@ -340,6 +347,8 @@ export async function runOrchestrator(
       failed.push(issue.id);
     }
   }
+
+  sleepInhibitor.disable();
 
   if (verbose) {
     systemLog("=== Orchestrator Summary ===");
