@@ -96,8 +96,8 @@ if no config file exists, no gates are run.
 
 ### reviews
 
-reviews are custom prompts that run after each issue is completed but before it's
-closed. they receive the diff and can make additional changes. useful for
+reviews are custom prompts that run after each issue is completed but before
+it's closed. they receive the diff and can make additional changes. useful for
 enforcing project-specific standards:
 
 ```toml
@@ -138,3 +138,48 @@ it finds. if a review makes changes, subsequent reviews see the updated diff.
 - [claude code cli](https://docs.anthropic.com/en/docs/claude-code) (`claude`
   command)
 - [beads](https://github.com/steveyegge/beads) (`bd` command)
+
+## container
+
+bdorc provides a Containerfile for running in an isolated container environment,
+compatible with Apple's [container](https://github.com/apple/container) tool.
+
+### build
+
+```bash
+container build --tag bdorc-agent .
+```
+
+### run
+
+```bash
+# interactive shell
+container run -it --rm -v $(pwd):/workspace bdorc-agent bash
+
+# run bdorc directly (mount your project and API key)
+container run --rm \
+  -v /path/to/your/project:/workspace \
+  -e ANTHROPIC_API_KEY \
+  bdorc-agent bdorc --dangerously-skip-permissions
+```
+
+### authenticate claude code
+
+before running bdorc, you need to authenticate claude code inside the container:
+
+```bash
+# start interactive shell
+container run -it --rm -v $(pwd):/workspace bdorc-agent bash
+
+# inside the container, run claude to start auth flow
+claude
+```
+
+this will prompt you to authenticate via browser (for Max subscription) or enter
+an API key.
+
+### notes
+
+- `-v $(pwd):/workspace` mounts your current directory into the container at
+  `/workspace`
+- the container includes: deno, claude code, beads (bd), jj, ripgrep
