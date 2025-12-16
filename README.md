@@ -94,6 +94,33 @@ gates = [
 
 if no config file exists, no gates are run.
 
+### reviews
+
+reviews are custom prompts that run after each issue is completed but before it's
+closed. they receive the diff and can make additional changes. useful for
+enforcing project-specific standards:
+
+```toml
+# example .config/bdorc.toml
+gates = [
+  "bundle exec standardrb --fix-unsafely",
+  "bundle exec rspec",
+  "pnpm run type-check",
+]
+
+[vcs]
+command = "jj"
+
+[[reviews]]
+prompt = "ensure no authorization errors are introduced"
+
+[[reviews]]
+prompt = "remove any excessive or unnecessary comments"
+```
+
+reviews run sequentially. each review sees the current diff and can fix issues
+it finds. if a review makes changes, subsequent reviews see the updated diff.
+
 ## cli options
 
 | flag                             | description                            | default             |
