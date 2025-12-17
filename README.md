@@ -147,8 +147,8 @@ a pre-built container image is available with all bdorc dependencies:
 docker pull ghcr.io/schpet/bdorc-agent:latest
 ```
 
-the image includes everything needed to run bdorc: deno, claude code,
-beads (bd), jj, and ripgrep. compatible with Docker, Podman, and Apple's
+the image includes everything needed to run bdorc: deno, claude code, beads
+(bd), jj, and ripgrep. compatible with Docker, Podman, and Apple's
 [container](https://github.com/apple/container) tool.
 
 ### build

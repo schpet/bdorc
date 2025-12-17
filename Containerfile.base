@@ -49,7 +49,7 @@ ENV PATH="${DENO_INSTALL}/bin:${PATH}"
 
 # Install claude code (native install - no Node.js required)
 RUN curl -fsSL https://claude.ai/install.sh | bash
-ENV PATH="/home/agent/.claude/local:${PATH}"
+ENV PATH="/home/agent/.local/bin:${PATH}"
 
 # Install beads (bd) for agent user
 RUN go install github.com/steveyegge/beads/cmd/bd@latest
