@@ -1,12 +1,12 @@
 # https://just.systems
 
 default:
-    echo 'Hello, world!'
+	just -l -u
 
 install:
     deno install -c ./deno.json -A -g -f -n bdorc ./main.ts
 
-container-build:
+container-build-ghcr:
     container build --tag bdorc-agent .
 
 container-build-base:

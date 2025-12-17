@@ -147,7 +147,7 @@ a pre-built container image is available with all bdorc dependencies:
 docker pull ghcr.io/schpet/bdorc-agent:latest
 ```
 
-the image includes everything needed to run bdorc: deno, node.js, claude code,
+the image includes everything needed to run bdorc: deno, claude code,
 beads (bd), jj, and ripgrep. compatible with Docker, Podman, and Apple's
 [container](https://github.com/apple/container) tool.
 
@@ -199,4 +199,4 @@ container run -it --rm -v $(pwd):/workspace bdorc-agent claude update
 
 - `-v $(pwd):/workspace` mounts your current directory into the container at
   `/workspace`
-- the container includes: deno, node.js, claude code, beads (bd), jj, ripgrep
+- the container includes: deno, claude code, beads (bd), jj, ripgrep

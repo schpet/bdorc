@@ -21,7 +21,7 @@ without polluting your local environment.
 bdorc provides a base image with all agent tooling pre-installed. Extend it with
 your project's specific toolchain.
 
-**Base image includes:** deno, claude code, beads (bd), jj, ripgrep, node.js
+**Base image includes:** deno, claude code, beads (bd), jj, ripgrep
 
 ### Using the Base Image
 
@@ -58,14 +58,16 @@ WORKDIR /workspace
 ```dockerfile
 FROM ghcr.io/schpet/bdorc-agent:latest
 
+USER root
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
+USER agent
 
 # Install Ruby
 RUN curl -fsSL https://github.com/rbenv/rbenv-installer/raw/HEAD/bin/rbenv-installer | bash
-ENV PATH="/root/.rbenv/bin:/root/.rbenv/shims:${PATH}"
+ENV PATH="/home/agent/.rbenv/bin:/home/agent/.rbenv/shims:${PATH}"
 RUN rbenv install 3.3.0 && rbenv global 3.3.0
 
 WORKDIR /workspace
@@ -91,7 +93,7 @@ command = "jj"
 FROM ghcr.io/schpet/bdorc-agent:latest
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
+ENV PATH="/home/agent/.cargo/bin:${PATH}"
 RUN rustup component add clippy rustfmt
 
 WORKDIR /workspace
@@ -112,12 +114,16 @@ command = "jj"
 
 ## Example: Node.js/TypeScript
 
-The base image already includes Node.js 22, so no additional setup is needed.
-
 ### Containerfile
 
 ```dockerfile
 FROM ghcr.io/schpet/bdorc-agent:latest
+
+USER root
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+USER agent
 
 WORKDIR /workspace
 ```
