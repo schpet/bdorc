@@ -77,9 +77,9 @@ ENV PATH="${PATH}:/home/agent/go/bin"
 # Install bdorc for agent user
 RUN deno install -A -g -f -n bdorc jsr:@schpet/bdorc
 
-# Configure jj for agent user
-RUN jj config set --user user.name "Agent" && \
-    jj config set --user user.email "agent@local"
+# Set default jj identity (can be overridden via JJ_USER and JJ_EMAIL env vars)
+ENV JJ_USER="Agent"
+ENV JJ_EMAIL="agent@local"
 
 # Symlink default git ignore path to mounted location
 # The justfile sync-git-ignore copies the host's global gitignore to /claude/gitignore

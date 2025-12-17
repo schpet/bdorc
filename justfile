@@ -18,6 +18,10 @@ container-build-dev: container-build-base
 # directory for persisting claude config between container runs
 container-config-dir := env_var_or_default("BDORC_CONFIG_DIR", env_var("HOME") + "/.config/bdorc/container")
 
+# jj identity for container commits (auto-detect from host, allow override)
+jj-user := env_var_or_default("BDORC_JJ_USER", `jj config get user.name 2>/dev/null || git config user.name 2>/dev/null || echo "Agent"`)
+jj-email := env_var_or_default("BDORC_JJ_EMAIL", `jj config get user.email 2>/dev/null || git config user.email 2>/dev/null || echo "agent@local"`)
+
 # copy git global ignore to config dir (container CLI only supports directory mounts)
 [private]
 sync-git-ignore:
@@ -32,20 +36,20 @@ sync-git-ignore:
     fi
 
 container-shell: sync-git-ignore
-    container run -it --rm -m 4g -v $(pwd):/workspace -v {{container-config-dir}}:/claude -e CLAUDE_CONFIG_DIR=/claude bdorc-agent bash
+    container run -it --rm -m 4g -v $(pwd):/workspace -v {{container-config-dir}}:/claude -e CLAUDE_CONFIG_DIR=/claude -e JJ_USER="{{jj-user}}" -e JJ_EMAIL="{{jj-email}}" bdorc-agent bash
 
 # start claude interactively (login on first run, credentials persist in ~/.config/bdorc/container)
 container-claude: sync-git-ignore
-    container run -it --rm -m 4g -v $(pwd):/workspace -v {{container-config-dir}}:/claude -e CLAUDE_CONFIG_DIR=/claude bdorc-agent bash -c claude
+    container run -it --rm -m 4g -v $(pwd):/workspace -v {{container-config-dir}}:/claude -e CLAUDE_CONFIG_DIR=/claude -e JJ_USER="{{jj-user}}" -e JJ_EMAIL="{{jj-email}}" bdorc-agent bash -c claude
 
 container-update-claude:
     mkdir -p {{container-config-dir}}
-    container run -it --rm -m 4g -v {{container-config-dir}}:/claude -e CLAUDE_CONFIG_DIR=/claude bdorc-agent bash -c 'claude update'
+    container run -it --rm -m 4g -v {{container-config-dir}}:/claude -e CLAUDE_CONFIG_DIR=/claude -e JJ_USER="{{jj-user}}" -e JJ_EMAIL="{{jj-email}}" bdorc-agent bash -c 'claude update'
 
 # run bdorc in the container for improved security
 # first run: use 'just container-claude' to login, then use this
 container-run *args: sync-git-ignore
-    container run --rm -m 4g -v $(pwd):/workspace -v {{container-config-dir}}:/claude -e CLAUDE_CONFIG_DIR=/claude bdorc-agent bash -c 'deno install -c /workspace/deno.json -A -g -f -n bdorc /workspace/main.ts && bdorc --dangerously-skip-permissions {{args}}'
+    container run --rm -m 4g -v $(pwd):/workspace -v {{container-config-dir}}:/claude -e CLAUDE_CONFIG_DIR=/claude -e JJ_USER="{{jj-user}}" -e JJ_EMAIL="{{jj-email}}" bdorc-agent bash -c 'deno install -c /workspace/deno.json -A -g -f -n bdorc /workspace/main.ts && bdorc --dangerously-skip-permissions {{args}}'
 
 # stop all running bdorc-agent containers
 container-stop:

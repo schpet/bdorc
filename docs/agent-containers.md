@@ -207,6 +207,44 @@ Remove the image when done:
 container rmi my-agent
 ```
 
+### Commit Identity
+
+By default, commits made inside containers are attributed to the host user's
+identity (auto-detected from jj or git config). This provides a clear audit
+trail of which human initiated the agent work.
+
+**How it works:**
+
+1. The justfile auto-detects identity from `jj config get user.name` or
+   `git config user.name`
+2. Identity is passed to containers via `JJ_USER` and `JJ_EMAIL` environment
+   variables
+3. If no identity is found, falls back to "Agent <agent@local>"
+
+**Override with environment variables:**
+
+Set `BDORC_JJ_USER` and `BDORC_JJ_EMAIL` before running container commands:
+
+```bash
+# Use custom identity for CI/CD or team setups
+export BDORC_JJ_USER="CI Bot"
+export BDORC_JJ_EMAIL="ci@example.com"
+just container-shell
+```
+
+**Per-command override:**
+
+```bash
+BDORC_JJ_USER="Deploy Bot" BDORC_JJ_EMAIL="deploy@example.com" just container-run
+```
+
+**Check current identity inside container:**
+
+```bash
+echo "User: $JJ_USER, Email: $JJ_EMAIL"
+jj log -r @ --no-graph -T 'author'
+```
+
 ### Pre-installing Dependencies
 
 For faster startup, install project dependencies in the Containerfile:
