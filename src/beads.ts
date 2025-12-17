@@ -23,15 +23,61 @@ export interface BeadsConfig {
   workingDirectory: string;
 }
 
+// Track if we've synced the database in this session
+let hasSynced = false;
+
+/**
+ * Ensure database is synced with JSONL (import at startup)
+ */
+async function ensureSynced(config: BeadsConfig): Promise<void> {
+  if (hasSynced) return;
+
+  const command = new Deno.Command("bd", {
+    args: ["--sandbox", "sync", "--import-only"],
+    cwd: config.workingDirectory,
+    stdout: "piped",
+    stderr: "piped",
+  });
+
+  const { code, stderr } = await command.output();
+  if (code !== 0) {
+    const errorText = new TextDecoder().decode(stderr);
+    throw new Error(`bd sync failed: ${errorText}`);
+  }
+
+  hasSynced = true;
+}
+
+/**
+ * Flush database changes to JSONL (export after writes)
+ */
+async function flushChanges(config: BeadsConfig): Promise<void> {
+  const command = new Deno.Command("bd", {
+    args: ["--sandbox", "sync", "--flush-only"],
+    cwd: config.workingDirectory,
+    stdout: "piped",
+    stderr: "piped",
+  });
+
+  const { code, stderr } = await command.output();
+  if (code !== 0) {
+    const errorText = new TextDecoder().decode(stderr);
+    throw new Error(`bd flush failed: ${errorText}`);
+  }
+}
+
 /**
  * Run bd CLI command and return parsed JSON output
+ * Always uses --sandbox mode for simplicity and container compatibility
  */
 async function runBdCommand(
   args: string[],
   config: BeadsConfig,
 ): Promise<string> {
+  await ensureSynced(config);
+
   const command = new Deno.Command("bd", {
-    args: [...args, "--json"],
+    args: ["--sandbox", ...args, "--json"],
     cwd: config.workingDirectory,
     stdout: "piped",
     stderr: "piped",
@@ -85,6 +131,7 @@ export async function updateStatus(
     ["update", id, "--status", status],
     config,
   );
+  await flushChanges(config);
   // bd update returns an array
   const result = JSON.parse(output);
   if (Array.isArray(result)) {
@@ -102,6 +149,7 @@ export async function closeIssue(
   config: BeadsConfig,
 ): Promise<void> {
   await runBdCommand(["close", id, "--reason", reason], config);
+  await flushChanges(config);
 }
 
 /**
@@ -116,6 +164,7 @@ export async function addNotes(
     ["update", id, "--notes", notes],
     config,
   );
+  await flushChanges(config);
   const result = JSON.parse(output);
   if (Array.isArray(result)) {
     return result[0];
