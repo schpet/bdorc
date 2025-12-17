@@ -49,4 +49,10 @@ container-run *args: sync-git-ignore
 
 # stop all running bdorc-agent containers
 container-stop:
-    container stop $(container ps -q --filter ancestor=bdorc-agent) 2>/dev/null || echo "No running bdorc-agent containers"
+    #!/usr/bin/env bash
+    ids=$(container list --format json | jq -r '.[] | select(.status == "running") | select(.configuration.image.reference | contains("bdorc-agent")) | .configuration.id')
+    if [ -z "$ids" ]; then
+        echo "No running bdorc-agent containers"
+    else
+        echo "$ids" | xargs -I {} container stop {}
+    fi
