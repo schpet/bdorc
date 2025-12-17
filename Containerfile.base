@@ -81,4 +81,9 @@ RUN deno install -A -g -f -n bdorc jsr:@schpet/bdorc
 RUN jj config set --user user.name "Agent" && \
     jj config set --user user.email "agent@local"
 
+# Symlink default git ignore path to mounted location
+# The justfile sync-git-ignore copies the host's global gitignore to /claude/gitignore
+RUN mkdir -p /home/agent/.config/git && \
+    ln -s /claude/gitignore /home/agent/.config/git/ignore
+
 WORKDIR /workspace
