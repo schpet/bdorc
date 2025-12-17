@@ -23,4 +23,4 @@ container-update-claude:
 
 # run bdorc in the container for improved security
 container-run *args:
-    container run -it --rm -v $(pwd):/workspace bdorc-agent bdorc --dangerously-skip-permissions {{args}}
+    container run --rm -v $(pwd):/workspace bdorc-agent bash -c 'bdorc --dangerously-skip-permissions {{args}}'
