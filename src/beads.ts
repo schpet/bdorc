@@ -118,7 +118,6 @@ export async function addNotes(
     ["update", id, "--notes", notes],
     config,
   );
-  await flushChanges(config);
   const result = JSON.parse(output);
   if (Array.isArray(result)) {
     return result[0];
