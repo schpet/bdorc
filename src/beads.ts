@@ -50,6 +50,7 @@ async function ensureSynced(config: BeadsConfig): Promise<void> {
 
 /**
  * Flush database changes to JSONL (export after writes)
+ * Resets hasSynced so next read re-imports the updated JSONL
  */
 async function flushChanges(config: BeadsConfig): Promise<void> {
   const command = new Deno.Command("bd", {
@@ -64,6 +65,9 @@ async function flushChanges(config: BeadsConfig): Promise<void> {
     const errorText = new TextDecoder().decode(stderr);
     throw new Error(`bd flush failed: ${errorText}`);
   }
+
+  // JSONL changed, need to re-import before next read
+  hasSynced = false;
 }
 
 /**
