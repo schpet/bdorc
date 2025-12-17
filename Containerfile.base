@@ -8,7 +8,12 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     ripgrep \
     unzip \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user (required for claude code --dangerously-skip-permissions)
+RUN useradd -m -s /bin/bash agent && \
+    echo "agent ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Install Go 1.24 (required for beads)
 ARG TARGETARCH
@@ -22,10 +27,7 @@ RUN case "${TARGETARCH}" in \
     rm /tmp/go.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
 
-RUN curl -fsSL https://deno.land/install.sh | sh
-ENV DENO_INSTALL="/root/.deno"
-ENV PATH="${DENO_INSTALL}/bin:${PATH}"
-
+# Install jj to /usr/local/bin (system-wide)
 RUN case "${TARGETARCH}" in \
         "amd64") JJARCH="x86_64" ;; \
         "arm64") JJARCH="aarch64" ;; \
@@ -36,17 +38,29 @@ RUN case "${TARGETARCH}" in \
     tar -xzf /tmp/jj.tar.gz -C /usr/local/bin && \
     rm /tmp/jj.tar.gz
 
-RUN go install github.com/steveyegge/beads/cmd/bd@latest
-ENV PATH="${PATH}:/root/go/bin"
-
-# Install Node.js and claude code via npm
+# Install Node.js and claude code via npm (system-wide)
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 RUN npm install -g @anthropic-ai/claude-code
 
+# Switch to non-root user for user-local installs
+USER agent
+WORKDIR /home/agent
+
+# Install deno for agent user
+RUN curl -fsSL https://deno.land/install.sh | sh
+ENV DENO_INSTALL="/home/agent/.deno"
+ENV PATH="${DENO_INSTALL}/bin:${PATH}"
+
+# Install beads (bd) for agent user
+RUN go install github.com/steveyegge/beads/cmd/bd@latest
+ENV PATH="${PATH}:/home/agent/go/bin"
+
+# Install bdorc for agent user
 RUN deno install -A -g -f -n bdorc jsr:@schpet/bdorc
 
+# Configure jj for agent user
 RUN jj config set --user user.name "Agent" && \
     jj config set --user user.email "agent@local"
 
