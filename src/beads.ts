@@ -87,7 +87,6 @@ export async function updateStatus(
     ["update", id, "--status", status],
     config,
   );
-  await flushChanges(config);
   // bd update returns an array
   const result = JSON.parse(output);
   if (Array.isArray(result)) {
