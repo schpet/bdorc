@@ -16,35 +16,37 @@ An agent container packages everything an AI coding agent needs:
 Containers provide isolation, reproducibility, and make it easy to run agents
 without polluting your local environment.
 
-## Base Pattern
+## Base Image
 
-Every agent container follows this structure:
+bdorc provides a base image with all agent tooling pre-installed. Extend it with
+your project's specific toolchain.
+
+**Base image includes:** deno, claude code, beads (bd), jj, ripgrep, node.js
+
+### Using the Base Image
 
 ```dockerfile
-FROM <language-base-image>
+FROM ghcr.io/schpet/bdorc-agent:latest
 
-# Install agent tools
-RUN curl -fsSL https://deno.land/install.sh | sh
-ENV PATH="/root/.deno/bin:${PATH}"
+# Add your project-specific tooling here
 
-RUN curl -fsSL -o /tmp/jj.tar.gz \
-    "https://github.com/jj-vcs/jj/releases/download/v0.36.0/jj-v0.36.0-x86_64-unknown-linux-musl.tar.gz" \
-    && tar -xzf /tmp/jj.tar.gz -C /usr/local/bin \
-    && rm /tmp/jj.tar.gz
+WORKDIR /workspace
+```
 
-RUN apt-get update && apt-get install -y golang-go && rm -rf /var/lib/apt/lists/*
-RUN go install github.com/steveyegge/beads/cmd/bd@latest
-ENV PATH="${PATH}:/root/go/bin"
+### Building the Base Image Locally
 
-RUN curl -fsSL https://claude.ai/install.sh | bash
-ENV PATH="${PATH}:/root/.local/bin"
+If you want to build the base image yourself:
 
-RUN deno install -A -g -f -n bdorc jsr:@schpet/bdorc
+```bash
+container build --tag bdorc-agent-base --file Containerfile.base .
+```
 
-RUN jj config set --user user.name "Agent" && \
-    jj config set --user user.email "agent@local"
+Then reference it in your project's Containerfile:
 
-# Add project-specific setup here
+```dockerfile
+FROM bdorc-agent-base:latest
+
+# Add your project-specific tooling here
 
 WORKDIR /workspace
 ```
@@ -54,46 +56,17 @@ WORKDIR /workspace
 ### Containerfile
 
 ```dockerfile
-FROM ruby:3.3-bookworm
+FROM ghcr.io/schpet/bdorc-agent:latest
 
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    curl \
-    git \
-    ca-certificates \
-    ripgrep \
-    golang-go \
     build-essential \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Deno (for bdorc)
-RUN curl -fsSL https://deno.land/install.sh | sh
-ENV DENO_INSTALL="/root/.deno"
-ENV PATH="${DENO_INSTALL}/bin:${PATH}"
-
-# Install jj (version control)
-RUN curl -fsSL -o /tmp/jj.tar.gz \
-    "https://github.com/jj-vcs/jj/releases/download/v0.36.0/jj-v0.36.0-x86_64-unknown-linux-musl.tar.gz" \
-    && tar -xzf /tmp/jj.tar.gz -C /usr/local/bin \
-    && rm /tmp/jj.tar.gz
-
-# Install beads (bd)
-RUN go install github.com/steveyegge/beads/cmd/bd@latest
-ENV PATH="${PATH}:/root/go/bin"
-
-# Install claude code
-RUN curl -fsSL https://claude.ai/install.sh | bash
-ENV PATH="${PATH}:/root/.local/bin"
-
-# Install bdorc
-RUN deno install -A -g -f -n bdorc jsr:@schpet/bdorc
-
-# Configure jj
-RUN jj config set --user user.name "Agent" && \
-    jj config set --user user.email "agent@local"
+# Install Ruby
+RUN curl -fsSL https://github.com/rbenv/rbenv-installer/raw/HEAD/bin/rbenv-installer | bash
+ENV PATH="/root/.rbenv/bin:/root/.rbenv/shims:${PATH}"
+RUN rbenv install 3.3.0 && rbenv global 3.3.0
 
 WORKDIR /workspace
 ```
@@ -115,47 +88,11 @@ command = "jj"
 ### Containerfile
 
 ```dockerfile
-FROM rust:1.82-bookworm
+FROM ghcr.io/schpet/bdorc-agent:latest
 
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    git \
-    ca-certificates \
-    ripgrep \
-    golang-go \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Rust components
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
 RUN rustup component add clippy rustfmt
-
-# Install Deno (for bdorc)
-RUN curl -fsSL https://deno.land/install.sh | sh
-ENV DENO_INSTALL="/root/.deno"
-ENV PATH="${DENO_INSTALL}/bin:${PATH}"
-
-# Install jj (version control)
-RUN curl -fsSL -o /tmp/jj.tar.gz \
-    "https://github.com/jj-vcs/jj/releases/download/v0.36.0/jj-v0.36.0-x86_64-unknown-linux-musl.tar.gz" \
-    && tar -xzf /tmp/jj.tar.gz -C /usr/local/bin \
-    && rm /tmp/jj.tar.gz
-
-# Install beads (bd)
-RUN go install github.com/steveyegge/beads/cmd/bd@latest
-ENV PATH="${PATH}:/root/go/bin"
-
-# Install claude code
-RUN curl -fsSL https://claude.ai/install.sh | bash
-ENV PATH="${PATH}:/root/.local/bin"
-
-# Install bdorc
-RUN deno install -A -g -f -n bdorc jsr:@schpet/bdorc
-
-# Configure jj
-RUN jj config set --user user.name "Agent" && \
-    jj config set --user user.email "agent@local"
 
 WORKDIR /workspace
 ```
@@ -175,47 +112,12 @@ command = "jj"
 
 ## Example: Node.js/TypeScript
 
+The base image already includes Node.js 22, so no additional setup is needed.
+
 ### Containerfile
 
 ```dockerfile
-FROM node:22-bookworm
-
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    git \
-    ca-certificates \
-    ripgrep \
-    golang-go \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Deno (for bdorc)
-RUN curl -fsSL https://deno.land/install.sh | sh
-ENV DENO_INSTALL="/root/.deno"
-ENV PATH="${DENO_INSTALL}/bin:${PATH}"
-
-# Install jj (version control)
-RUN curl -fsSL -o /tmp/jj.tar.gz \
-    "https://github.com/jj-vcs/jj/releases/download/v0.36.0/jj-v0.36.0-x86_64-unknown-linux-musl.tar.gz" \
-    && tar -xzf /tmp/jj.tar.gz -C /usr/local/bin \
-    && rm /tmp/jj.tar.gz
-
-# Install beads (bd)
-RUN go install github.com/steveyegge/beads/cmd/bd@latest
-ENV PATH="${PATH}:/root/go/bin"
-
-# Install claude code
-RUN curl -fsSL https://claude.ai/install.sh | bash
-ENV PATH="${PATH}:/root/.local/bin"
-
-# Install bdorc
-RUN deno install -A -g -f -n bdorc jsr:@schpet/bdorc
-
-# Configure jj
-RUN jj config set --user user.name "Agent" && \
-    jj config set --user user.email "agent@local"
+FROM ghcr.io/schpet/bdorc-agent:latest
 
 WORKDIR /workspace
 ```
@@ -252,15 +154,13 @@ container build --tag my-agent .
 container run -it --rm -v $(pwd):/workspace my-agent bash
 
 # Run bdorc directly
-container run --rm \
+container run -it --rm \
   -v $(pwd):/workspace \
-  -e ANTHROPIC_API_KEY \
   my-agent bdorc --dangerously-skip-permissions
 
 # Limit iterations
-container run --rm \
+container run -it --rm \
   -v $(pwd):/workspace \
-  -e ANTHROPIC_API_KEY \
   my-agent bdorc --dangerously-skip-permissions --max-iterations 5
 ```
 
@@ -285,16 +185,6 @@ For projects with dependencies, consider mounting cache directories:
 
 # Ruby
 -v bundle_cache:/usr/local/bundle
-```
-
-### API Keys
-
-Pass your Anthropic API key via environment variable:
-
-```bash
--e ANTHROPIC_API_KEY
-# or
--e ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
 ### Cleanup

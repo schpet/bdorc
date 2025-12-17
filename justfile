@@ -6,7 +6,10 @@ default:
 install:
     deno install -c ./deno.json -A -g -f -n bdorc ./main.ts
 
-container-build:
+container-build-base:
+    container build --tag bdorc-agent-base --file Containerfile.base .
+
+container-build: container-build-base
     container build --tag bdorc-agent .
 
 container-shell:
