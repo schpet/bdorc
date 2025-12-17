@@ -141,10 +141,19 @@ it finds. if a review makes changes, subsequent reviews see the updated diff.
 
 ## container
 
-bdorc provides a Containerfile for running in an isolated container environment,
-compatible with Apple's [container](https://github.com/apple/container) tool.
+a pre-built container image is available with all bdorc dependencies:
+
+```bash
+docker pull ghcr.io/schpet/bdorc-agent:latest
+```
+
+the image includes everything needed to run bdorc: deno, node.js, claude code,
+beads (bd), jj, and ripgrep. compatible with Docker, Podman, and Apple's
+[container](https://github.com/apple/container) tool.
 
 ### build
+
+to build locally (or extend the base image with project-specific tooling):
 
 ```bash
 container build --tag bdorc-agent .
@@ -156,10 +165,9 @@ container build --tag bdorc-agent .
 # interactive shell
 container run -it --rm -v $(pwd):/workspace bdorc-agent bash
 
-# run bdorc directly (mount your project and API key)
-container run --rm \
-  -v /path/to/your/project:/workspace \
-  -e ANTHROPIC_API_KEY \
+# run bdorc directly
+container run -it --rm \
+  -v $(pwd):/workspace \
   bdorc-agent bdorc --dangerously-skip-permissions
 ```
 
@@ -178,8 +186,17 @@ claude
 this will prompt you to authenticate via browser (for Max subscription) or enter
 an API key.
 
+### update claude code
+
+the container ships with a specific version of claude code. to update to the
+latest version:
+
+```bash
+container run -it --rm -v $(pwd):/workspace bdorc-agent claude update
+```
+
 ### notes
 
 - `-v $(pwd):/workspace` mounts your current directory into the container at
   `/workspace`
-- the container includes: deno, claude code, beads (bd), jj, ripgrep
+- the container includes: deno, node.js, claude code, beads (bd), jj, ripgrep
