@@ -46,3 +46,7 @@ container-update-claude:
 # first run: use 'just container-claude' to login, then use this
 container-run *args: sync-git-ignore
     container run --rm -m 4g -v $(pwd):/workspace -v {{container-config-dir}}:/claude -e CLAUDE_CONFIG_DIR=/claude bdorc-agent bash -c 'deno install -c /workspace/deno.json -A -g -f -n bdorc /workspace/main.ts && bdorc --dangerously-skip-permissions {{args}}'
+
+# stop all running bdorc-agent containers
+container-stop:
+    container stop $(container ps -q --filter ancestor=bdorc-agent) 2>/dev/null || echo "No running bdorc-agent containers"
