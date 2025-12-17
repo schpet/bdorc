@@ -104,7 +104,6 @@ export async function closeIssue(
   config: BeadsConfig,
 ): Promise<void> {
   await runBdCommand(["close", id, "--reason", reason], config);
-  await flushChanges(config);
 }
 
 /**
