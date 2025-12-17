@@ -47,6 +47,25 @@ RUN curl -fsSL https://deno.land/install.sh | sh
 ENV DENO_INSTALL="/home/agent/.deno"
 ENV PATH="${DENO_INSTALL}/bin:${PATH}"
 
+# Create pre-configured Claude settings to skip onboarding
+RUN mkdir -p /home/agent/.claude && \
+    echo '{\n\
+  "numStartups": 1,\n\
+  "installMethod": "container",\n\
+  "autoUpdates": false,\n\
+  "theme": "dark",\n\
+  "hasCompletedOnboarding": true,\n\
+  "firstStartTime": "2025-12-16T00:00:00.000Z",\n\
+  "lastOnboardingVersion": "2.0.71"\n\
+}' > /home/agent/.claude.json && \
+    echo '{\n\
+  "permissions": {\n\
+    "allow": [],\n\
+    "deny": [],\n\
+    "ask": []\n\
+  }\n\
+}' > /home/agent/.claude/settings.local.json
+
 # Install claude code (native install - no Node.js required)
 RUN curl -fsSL https://claude.ai/install.sh | bash
 ENV PATH="/home/agent/.local/bin:${PATH}"

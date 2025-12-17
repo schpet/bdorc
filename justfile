@@ -10,26 +10,29 @@ container-build-ghcr:
     container build --tag bdorc-agent .
 
 container-build-base:
-    container build --tag bdorc-agent-base --file Containerfile.base .
+    container build -m 4g --tag bdorc-agent-base --file Containerfile.base .
 
 container-build-dev: container-build-base
     container build --tag bdorc-agent --file Containerfile.dev .
 
+# directory for persisting claude config between container runs
+container-config-dir := env_var_or_default("BDORC_CONFIG_DIR", env_var("HOME") + "/.config/bdorc/container")
+
 container-shell:
-    container run -it --rm -m 4g -v $(pwd):/workspace -e CLAUDE_CODE_OAUTH_TOKEN bdorc-agent bash
+    mkdir -p {{container-config-dir}}
+    container run -it --rm -m 4g -v $(pwd):/workspace -v {{container-config-dir}}:/claude -e CLAUDE_CONFIG_DIR=/claude bdorc-agent bash
 
-# get oauth token: run this, login, then export CLAUDE_CODE_OAUTH_TOKEN=sk-...
-container-login:
-    container run -it --rm -m 4g bdorc-agent bash -c 'claude setup-token'
-
-# start claude interactively (requires CLAUDE_CODE_OAUTH_TOKEN)
+# start claude interactively (login on first run, credentials persist in ~/.config/bdorc/container)
 container-claude:
-    container run -it --rm -m 4g -v $(pwd):/workspace -e CLAUDE_CODE_OAUTH_TOKEN bdorc-agent bash -c claude
+    mkdir -p {{container-config-dir}}
+    container run -it --rm -m 4g -v $(pwd):/workspace -v {{container-config-dir}}:/claude -e CLAUDE_CONFIG_DIR=/claude bdorc-agent bash -c claude
 
 container-update-claude:
-    container run -it --rm -m 4g -e CLAUDE_CODE_OAUTH_TOKEN bdorc-agent bash -c 'claude update'
+    mkdir -p {{container-config-dir}}
+    container run -it --rm -m 4g -v {{container-config-dir}}:/claude -e CLAUDE_CONFIG_DIR=/claude bdorc-agent bash -c 'claude update'
 
 # run bdorc in the container for improved security
-# requires: export CLAUDE_CODE_OAUTH_TOKEN=sk-...
+# first run: use 'just container-claude' to login, then use this
 container-run *args:
-    container run --rm -m 4g -v $(pwd):/workspace -e CLAUDE_CODE_OAUTH_TOKEN bdorc-agent bash -c 'bdorc --dangerously-skip-permissions {{args}}'
+    mkdir -p {{container-config-dir}}
+    container run --rm -m 4g -v $(pwd):/workspace -v {{container-config-dir}}:/claude -e CLAUDE_CONFIG_DIR=/claude bdorc-agent bash -c 'bdorc --dangerously-skip-permissions {{args}}'

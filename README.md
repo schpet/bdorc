@@ -186,6 +186,10 @@ claude
 this will prompt you to authenticate via browser (for Max subscription) or enter
 an API key.
 
+the container authentication approach is based on
+[nezhar/claude-container](https://github.com/nezhar/claude-container), which
+uses persistent credential storage via `CLAUDE_CONFIG_DIR`.
+
 ### update claude code
 
 the container ships with a specific version of claude code. to update to the
