@@ -18,7 +18,7 @@ without polluting your local environment.
 
 ## Base Image
 
-bdorc provides a base image with all agent tooling pre-installed. Extend it with
+ebo provides a base image with all agent tooling pre-installed. Extend it with
 your project's specific toolchain.
 
 **Base image includes:** deno, claude code, beads (bd), jj, ripgrep
@@ -26,7 +26,7 @@ your project's specific toolchain.
 ### Using the Base Image
 
 ```dockerfile
-FROM ghcr.io/schpet/bdorc-agent:latest
+FROM ghcr.io/schpet/ebo-agent:latest
 
 # Add your project-specific tooling here
 
@@ -38,13 +38,13 @@ WORKDIR /workspace
 If you want to build the base image yourself:
 
 ```bash
-container build --tag bdorc-agent-base --file Containerfile.base .
+container build --tag ebo-agent-base --file Containerfile.base .
 ```
 
 Then reference it in your project's Containerfile:
 
 ```dockerfile
-FROM bdorc-agent-base:latest
+FROM ebo-agent-base:latest
 
 # Add your project-specific tooling here
 
@@ -56,7 +56,7 @@ WORKDIR /workspace
 ### Containerfile
 
 ```dockerfile
-FROM ghcr.io/schpet/bdorc-agent:latest
+FROM ghcr.io/schpet/ebo-agent:latest
 
 USER root
 RUN apt-get update && apt-get install -y \
@@ -73,7 +73,7 @@ RUN rbenv install 3.3.0 && rbenv global 3.3.0
 WORKDIR /workspace
 ```
 
-### bdorc.toml
+### ebo.toml
 
 ```toml
 gates = [
@@ -90,7 +90,7 @@ command = "jj"
 ### Containerfile
 
 ```dockerfile
-FROM ghcr.io/schpet/bdorc-agent:latest
+FROM ghcr.io/schpet/ebo-agent:latest
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/home/agent/.cargo/bin:${PATH}"
@@ -99,7 +99,7 @@ RUN rustup component add clippy rustfmt
 WORKDIR /workspace
 ```
 
-### bdorc.toml
+### ebo.toml
 
 ```toml
 gates = [
@@ -117,7 +117,7 @@ command = "jj"
 ### Containerfile
 
 ```dockerfile
-FROM ghcr.io/schpet/bdorc-agent:latest
+FROM ghcr.io/schpet/ebo-agent:latest
 
 USER root
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
@@ -128,7 +128,7 @@ USER agent
 WORKDIR /workspace
 ```
 
-### bdorc.toml
+### ebo.toml
 
 ```toml
 gates = [
@@ -159,15 +159,15 @@ container build --tag my-agent .
 # Interactive shell
 container run -it --rm -v $(pwd):/workspace my-agent bash
 
-# Run bdorc directly
+# Run ebo directly
 container run -it --rm \
   -v $(pwd):/workspace \
-  my-agent bdorc --dangerously-skip-permissions
+  my-agent ebo --dangerously-skip-permissions
 
 # Limit iterations
 container run -it --rm \
   -v $(pwd):/workspace \
-  my-agent bdorc --dangerously-skip-permissions --max-iterations 5
+  my-agent ebo --dangerously-skip-permissions --max-iterations 5
 ```
 
 ## Tips
@@ -223,19 +223,19 @@ trail of which human initiated the agent work.
 
 **Override with environment variables:**
 
-Set `BDORC_JJ_USER` and `BDORC_JJ_EMAIL` before running container commands:
+Set `EBO_JJ_USER` and `EBO_JJ_EMAIL` before running container commands:
 
 ```bash
 # Use custom identity for CI/CD or team setups
-export BDORC_JJ_USER="CI Bot"
-export BDORC_JJ_EMAIL="ci@example.com"
+export EBO_JJ_USER="CI Bot"
+export EBO_JJ_EMAIL="ci@example.com"
 just container-shell
 ```
 
 **Per-command override:**
 
 ```bash
-BDORC_JJ_USER="Deploy Bot" BDORC_JJ_EMAIL="deploy@example.com" just container-run
+EBO_JJ_USER="Deploy Bot" EBO_JJ_EMAIL="deploy@example.com" just container-run
 ```
 
 **Check current identity inside container:**

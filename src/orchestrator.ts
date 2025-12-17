@@ -67,7 +67,7 @@ export async function runOrchestrator(
   const verbose = config.verbose ?? true;
   const pollIntervalMs = 1000;
 
-  // Load gates config from .config/bdorc.toml (or use defaults)
+  // Load gates config from .config/ebo.toml (or use defaults)
   const gatesConfig = await loadGatesConfig(config.workingDirectory);
 
   // Load reviews config
@@ -91,15 +91,15 @@ export async function runOrchestrator(
   // Warn if no gates configured
   if (!hasGatesConfigured(gatesConfig)) {
     systemWarn(
-      "No quality gates configured. Create .config/bdorc.toml to add gates.",
+      "No quality gates configured. Create .config/ebo.toml to add gates.",
     );
   } else if (verbose) {
-    systemLog("Loaded gates config from .config/bdorc.toml");
+    systemLog("Loaded gates config from .config/ebo.toml");
   }
 
   if (hasReviewsConfigured(reviewsConfig) && verbose) {
     systemLog(
-      `Loaded ${reviewsConfig.reviews.length} review(s) from .config/bdorc.toml`,
+      `Loaded ${reviewsConfig.reviews.length} review(s) from .config/ebo.toml`,
     );
   }
   if (verbose) {

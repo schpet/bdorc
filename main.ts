@@ -1,5 +1,5 @@
 /**
- * bdorc CLI - Beads orchestrator for Claude Code
+ * ebo CLI - Beads orchestrator for Claude Code
  */
 
 import { Command } from "@cliffy/command";
@@ -13,6 +13,7 @@ import {
   runAllGates,
 } from "./src/gates.ts";
 import { runOrchestrator } from "./src/mod.ts";
+import { installSignalHandlers } from "./src/process-manager.ts";
 import { systemLog, systemWarn } from "./src/system-log.ts";
 
 /**
@@ -63,7 +64,7 @@ function generateTomlConfig(options: {
 
 const initCommand = new Command()
   .name("init")
-  .description("Initialize bdorc configuration")
+  .description("Initialize ebo configuration")
   .action(async () => {
     const initBeads = await Confirm.prompt({
       message: "Initialize beads in this repo?",
@@ -94,7 +95,7 @@ const initCommand = new Command()
       await claude.output();
     }
 
-    const configPath = `${Deno.cwd()}/.config/bdorc.toml`;
+    const configPath = `${Deno.cwd()}/.config/ebo.toml`;
 
     const existingConfig = await loadConfig(Deno.cwd());
     if (existingConfig) {
@@ -198,7 +199,7 @@ const creatorPromptCommand = new Command()
   });
 
 const command = new Command()
-  .name("bdorc")
+  .name("ebo")
   .version("0.1.0")
   .description("Beads orchestrator for Claude Code")
   .option("-n, --max-iterations <count:number>", "Maximum loop iterations", {
@@ -214,16 +215,16 @@ const command = new Command()
   .action(async (options) => {
     if (!options.dangerouslySkipPermissions) {
       console.error(
-        "Error: bdorc requires --dangerously-skip-permissions to run autonomously.",
+        "Error: ebo requires --dangerously-skip-permissions to run autonomously.",
       );
       console.error(
         "This tool runs Claude Code in a loop and cannot prompt for permissions.",
       );
-      console.error("\nUsage: bdorc --dangerously-skip-permissions [options]");
+      console.error("\nUsage: ebo --dangerously-skip-permissions [options]");
       Deno.exit(1);
     }
 
-    systemLog("bdorc - Beads orchestrator for Claude Code");
+    systemLog("ebo - Beads orchestrator for Claude Code");
 
     // Run initial gate check
     const gatesConfig = await loadGatesConfig(Deno.cwd());
@@ -309,5 +310,6 @@ const command = new Command()
   .command("creator-prompt", creatorPromptCommand);
 
 if (import.meta.main) {
+  installSignalHandlers();
   await command.parse(Deno.args);
 }

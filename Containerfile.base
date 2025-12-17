@@ -74,8 +74,8 @@ ENV PATH="/home/agent/.local/bin:${PATH}"
 RUN go install github.com/steveyegge/beads/cmd/bd@latest
 ENV PATH="${PATH}:/home/agent/go/bin"
 
-# Install bdorc for agent user
-RUN deno install -A -g -f -n bdorc jsr:@schpet/bdorc
+# Install ebo for agent user
+RUN deno install -A -g -f -n ebo jsr:@schpet/easy-bead-oven
 
 # Set default jj identity (can be overridden via JJ_USER and JJ_EMAIL env vars)
 ENV JJ_USER="Agent"

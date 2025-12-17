@@ -22,7 +22,7 @@ const DEFAULT_VCS_CONFIG: VcsConfig = {
 };
 
 /**
- * Load VCS config from .config/bdorc.toml
+ * Load VCS config from .config/ebo.toml
  */
 export async function loadVcsConfig(
   workingDirectory: string,

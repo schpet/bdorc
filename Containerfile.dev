@@ -1,4 +1,4 @@
-FROM bdorc-agent-base:latest
+FROM ebo-agent-base:latest
 
 # nothing to add here given base container has deno
 

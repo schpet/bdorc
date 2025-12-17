@@ -36,7 +36,7 @@ Deno.test("parseCommand: npx command", () => {
 Deno.test({
   name: "loadConfig: returns undefined for missing file",
   async fn() {
-    const testDir = await Deno.makeTempDir({ prefix: "bdorc_config_test_" });
+    const testDir = await Deno.makeTempDir({ prefix: "ebo_config_test_" });
     const config = await loadConfig(testDir);
     assertEquals(config, undefined);
     await Deno.remove(testDir, { recursive: true });
@@ -46,10 +46,10 @@ Deno.test({
 Deno.test({
   name: "loadConfig: parses TOML config file with gates array",
   async fn() {
-    const testDir = await Deno.makeTempDir({ prefix: "bdorc_config_test_" });
+    const testDir = await Deno.makeTempDir({ prefix: "ebo_config_test_" });
     await Deno.mkdir(`${testDir}/.config`);
     await Deno.writeTextFile(
-      `${testDir}/.config/bdorc.toml`,
+      `${testDir}/.config/ebo.toml`,
       `gates = [
   "npm test",
   "npx tsc --noEmit",
@@ -72,10 +72,10 @@ Deno.test({
 Deno.test({
   name: "loadConfig: handles single gate",
   async fn() {
-    const testDir = await Deno.makeTempDir({ prefix: "bdorc_config_test_" });
+    const testDir = await Deno.makeTempDir({ prefix: "ebo_config_test_" });
     await Deno.mkdir(`${testDir}/.config`);
     await Deno.writeTextFile(
-      `${testDir}/.config/bdorc.toml`,
+      `${testDir}/.config/ebo.toml`,
       `gates = ["cargo build"]
 `,
     );

@@ -1,4 +1,5 @@
 import { systemWarn } from "./system-log.ts";
+import { registerProcess, unregisterProcess } from "./process-manager.ts";
 
 export interface SleepInhibitor {
   enable(): void;
@@ -25,6 +26,7 @@ export function createSleepInhibitor(): SleepInhibitor {
       if (os === "darwin") {
         try {
           process = new Deno.Command("caffeinate", { args: ["-i"] }).spawn();
+          registerProcess(process, "caffeinate");
         } catch {
           // Ignore - caffeinate may not be available
         }
@@ -33,12 +35,13 @@ export function createSleepInhibitor(): SleepInhibitor {
           process = new Deno.Command("systemd-inhibit", {
             args: [
               "--what=sleep:idle",
-              "--who=bdorc",
+              "--who=ebo",
               "--why=Working on issues",
               "sleep",
               "infinity",
             ],
           }).spawn();
+          registerProcess(process, "systemd-inhibit");
         } catch {
           // Ignore - systemd-inhibit may not be available
         }
@@ -51,6 +54,7 @@ export function createSleepInhibitor(): SleepInhibitor {
     disable() {
       if (!process) return;
       try {
+        unregisterProcess(process);
         process.kill();
       } catch {
         // Ignore - process may have already exited

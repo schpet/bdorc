@@ -21,7 +21,7 @@ async function countJjCommits(workingDirectory: string): Promise<number> {
 Deno.test({
   name: "loadVcsConfig: returns disabled config when no vcs section",
   async fn() {
-    const testDir = await Deno.makeTempDir({ prefix: "bdorc_vcs_test_" });
+    const testDir = await Deno.makeTempDir({ prefix: "ebo_vcs_test_" });
     const config = await loadVcsConfig(testDir);
     assertEquals(config.enabled, false);
     assertEquals(config.command, "jj");
@@ -32,10 +32,10 @@ Deno.test({
 Deno.test({
   name: "loadVcsConfig: parses enabled vcs config",
   async fn() {
-    const testDir = await Deno.makeTempDir({ prefix: "bdorc_vcs_test_" });
+    const testDir = await Deno.makeTempDir({ prefix: "ebo_vcs_test_" });
     await Deno.mkdir(`${testDir}/.config`);
     await Deno.writeTextFile(
-      `${testDir}/.config/bdorc.toml`,
+      `${testDir}/.config/ebo.toml`,
       `[vcs]
 enabled = true
 `,
@@ -53,7 +53,7 @@ Deno.test({
   name:
     "hasWorkingCopyChanges: returns false when no changes (mocked via empty jj repo)",
   async fn() {
-    const testDir = await Deno.makeTempDir({ prefix: "bdorc_vcs_test_" });
+    const testDir = await Deno.makeTempDir({ prefix: "ebo_vcs_test_" });
 
     // Initialize a jj repo
     const init = new Deno.Command("jj", {
@@ -75,7 +75,7 @@ Deno.test({
 Deno.test({
   name: "hasWorkingCopyChanges: returns true when file is modified",
   async fn() {
-    const testDir = await Deno.makeTempDir({ prefix: "bdorc_vcs_test_" });
+    const testDir = await Deno.makeTempDir({ prefix: "ebo_vcs_test_" });
 
     // Initialize a jj repo
     const init = new Deno.Command("jj", {
@@ -101,7 +101,7 @@ Deno.test({
   name:
     "commitWork: returns no changes message and creates no commit when VCS enabled but no changes",
   async fn() {
-    const testDir = await Deno.makeTempDir({ prefix: "bdorc_vcs_test_" });
+    const testDir = await Deno.makeTempDir({ prefix: "ebo_vcs_test_" });
 
     // Initialize a jj repo
     const init = new Deno.Command("jj", {
@@ -148,7 +148,7 @@ Deno.test({
 Deno.test({
   name: "commitWork: skips commit when VCS disabled",
   async fn() {
-    const testDir = await Deno.makeTempDir({ prefix: "bdorc_vcs_test_" });
+    const testDir = await Deno.makeTempDir({ prefix: "ebo_vcs_test_" });
 
     const result = await commitWork(
       {
@@ -181,7 +181,7 @@ Deno.test({
 Deno.test({
   name: "ensureCleanWorkingCopy: skips when VCS disabled",
   async fn() {
-    const testDir = await Deno.makeTempDir({ prefix: "bdorc_vcs_test_" });
+    const testDir = await Deno.makeTempDir({ prefix: "ebo_vcs_test_" });
 
     const result = await ensureCleanWorkingCopy(
       { enabled: false, command: "jj" },
@@ -198,7 +198,7 @@ Deno.test({
 Deno.test({
   name: "ensureCleanWorkingCopy: returns clean when no changes exist",
   async fn() {
-    const testDir = await Deno.makeTempDir({ prefix: "bdorc_vcs_test_" });
+    const testDir = await Deno.makeTempDir({ prefix: "ebo_vcs_test_" });
 
     // Initialize a jj repo
     const init = new Deno.Command("jj", {
@@ -224,7 +224,7 @@ Deno.test({
 Deno.test({
   name: "ensureCleanWorkingCopy: runs jj new when changes exist",
   async fn() {
-    const testDir = await Deno.makeTempDir({ prefix: "bdorc_vcs_test_" });
+    const testDir = await Deno.makeTempDir({ prefix: "ebo_vcs_test_" });
 
     // Initialize a jj repo
     const init = new Deno.Command("jj", {

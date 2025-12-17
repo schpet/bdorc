@@ -1,4 +1,4 @@
-# bdorc
+# easy-bead-oven
 
 beads orchestrator for claude code. processes beads issues as they become ready,
 waiting for new work when idle. quality gates ensure code quality.
@@ -6,13 +6,13 @@ waiting for new work when idle. quality gates ensure code quality.
 ## install
 
 ```bash
-deno install -A -g -f -n bdorc jsr:@schpet/bdorc
+deno install -A -g -f -n ebo jsr:@schpet/easy-bead-oven
 ```
 
 or, if you've cloned the repo:
 
 ```bash
-deno install -c ./deno.json -A -g -f -n bdorc ./main.ts
+deno install -c ./deno.json -A -g -f -n ebo ./main.ts
 ```
 
 ## status
@@ -26,21 +26,21 @@ current limitations:
 
 ## usage
 
-bdorc **requires** `--dangerously-skip-permissions` since it runs claude code
+ebo **requires** `--dangerously-skip-permissions` since it runs claude code
 autonomously in a loop and cannot prompt for permissions.
 
 ```bash
 # basic usage - run in continuous mode (streams output, runs indefinitely)
-bdorc --dangerously-skip-permissions
+ebo --dangerously-skip-permissions
 
 # limit to 10 iterations
-bdorc --dangerously-skip-permissions --max-iterations 10
+ebo --dangerously-skip-permissions --max-iterations 10
 
 # use a specific model
-bdorc --dangerously-skip-permissions --model claude-sonnet-4-20250514
+ebo --dangerously-skip-permissions --model claude-sonnet-4-20250514
 
 # quiet mode
-bdorc --dangerously-skip-permissions --quiet
+ebo --dangerously-skip-permissions --quiet
 ```
 
 ## how it works
@@ -56,7 +56,7 @@ bdorc --dangerously-skip-permissions --quiet
 
 ## configuration
 
-create `.config/bdorc.toml` in your project to configure quality gates:
+create `.config/ebo.toml` in your project to configure quality gates:
 
 ```toml
 gates = [
@@ -101,7 +101,7 @@ it's closed. they receive the diff and can make additional changes. useful for
 enforcing project-specific standards:
 
 ```toml
-# example .config/bdorc.toml
+# example .config/ebo.toml
 gates = [
   "bundle exec standardrb --fix-unsafely",
   "bundle exec rspec",
@@ -141,14 +141,14 @@ it finds. if a review makes changes, subsequent reviews see the updated diff.
 
 ## container
 
-a pre-built container image is available with all bdorc dependencies:
+a pre-built container image is available with all ebo dependencies:
 
 ```bash
-docker pull ghcr.io/schpet/bdorc-agent:latest
+docker pull ghcr.io/schpet/ebo-agent:latest
 ```
 
-the image includes everything needed to run bdorc: deno, claude code, beads
-(bd), jj, and ripgrep. compatible with Docker, Podman, and Apple's
+the image includes everything needed to run ebo: deno, claude code, beads (bd),
+jj, and ripgrep. compatible with Docker, Podman, and Apple's
 [container](https://github.com/apple/container) tool.
 
 ### build
@@ -156,28 +156,28 @@ the image includes everything needed to run bdorc: deno, claude code, beads
 to build locally (or extend the base image with project-specific tooling):
 
 ```bash
-container build --tag bdorc-agent .
+container build --tag ebo-agent .
 ```
 
 ### run
 
 ```bash
 # interactive shell
-container run -it --rm -v $(pwd):/workspace bdorc-agent bash
+container run -it --rm -v $(pwd):/workspace ebo-agent bash
 
-# run bdorc directly
+# run ebo directly
 container run -it --rm \
   -v $(pwd):/workspace \
-  bdorc-agent bdorc --dangerously-skip-permissions
+  ebo-agent ebo --dangerously-skip-permissions
 ```
 
 ### authenticate claude code
 
-before running bdorc, you need to authenticate claude code inside the container:
+before running ebo, you need to authenticate claude code inside the container:
 
 ```bash
 # start interactive shell
-container run -it --rm -v $(pwd):/workspace bdorc-agent bash
+container run -it --rm -v $(pwd):/workspace ebo-agent bash
 
 # inside the container, run claude to start auth flow
 claude
@@ -196,7 +196,7 @@ the container ships with a specific version of claude code. to update to the
 latest version:
 
 ```bash
-container run -it --rm -v $(pwd):/workspace bdorc-agent claude update
+container run -it --rm -v $(pwd):/workspace ebo-agent claude update
 ```
 
 ### notes

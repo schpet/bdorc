@@ -15,7 +15,7 @@ export interface ReviewsConfig {
 }
 
 /**
- * Load reviews config from .config/bdorc.toml
+ * Load reviews config from .config/ebo.toml
  */
 export async function loadReviewsConfig(
   workingDirectory: string,

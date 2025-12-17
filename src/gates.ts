@@ -21,7 +21,7 @@ export interface GatesConfig {
 }
 
 /**
- * Load gates config from .config/bdorc.toml
+ * Load gates config from .config/ebo.toml
  */
 export async function loadGatesConfig(
   workingDirectory: string,

@@ -3,6 +3,7 @@
  */
 
 import { dim, green } from "@std/fmt/colors";
+import { registerProcess, unregisterProcess } from "./process-manager.ts";
 
 export interface ClaudeResult {
   success: boolean;
@@ -64,6 +65,7 @@ async function runClaudeCodeStreaming(
   });
 
   const process = command.spawn();
+  registerProcess(process, "claude");
 
   // Collect output while streaming
   let finalResult = "";
@@ -118,6 +120,7 @@ async function runClaudeCodeStreaming(
   await Promise.all([readStdout(), readStderr()]);
 
   const { code } = await process.status;
+  unregisterProcess(process);
 
   return {
     success: code === 0,

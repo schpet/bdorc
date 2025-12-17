@@ -1,5 +1,5 @@
 /**
- * bdorc - Beads orchestrator for Claude Code
+ * ebo - Beads orchestrator for Claude Code
  *
  * Processes beads issues as they become ready, waiting for new work when idle.
  * Quality gates ensure code quality.

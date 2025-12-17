@@ -1,3 +1,3 @@
-FROM ghcr.io/schpet/bdorc-agent:latest
+FROM ghcr.io/schpet/ebo-agent:latest
 
 WORKDIR /workspace

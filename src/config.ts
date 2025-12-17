@@ -1,5 +1,5 @@
 /**
- * Configuration file support - reads .config/bdorc.toml
+ * Configuration file support - reads .config/ebo.toml
  */
 
 import { parse as parseToml } from "@std/toml";
@@ -13,24 +13,24 @@ export interface ReviewConfigRaw {
   prompt: string;
 }
 
-export interface BdorcConfig {
+export interface EboConfig {
   gates?: string[];
   vcs?: VcsConfigRaw;
   reviews?: ReviewConfigRaw[];
 }
 
 /**
- * Load config from .config/bdorc.toml in the working directory
+ * Load config from .config/ebo.toml in the working directory
  * Returns undefined if no config file exists
  */
 export async function loadConfig(
   workingDirectory: string,
-): Promise<BdorcConfig | undefined> {
-  const configPath = `${workingDirectory}/.config/bdorc.toml`;
+): Promise<EboConfig | undefined> {
+  const configPath = `${workingDirectory}/.config/ebo.toml`;
 
   try {
     const content = await Deno.readTextFile(configPath);
-    return parseToml(content) as BdorcConfig;
+    return parseToml(content) as EboConfig;
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) {
       return undefined;
