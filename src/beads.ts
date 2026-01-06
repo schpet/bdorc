@@ -50,11 +50,32 @@ async function runBdCommand(
 }
 
 /**
+ * Flush SQLite database to JSONL
+ * This ensures --no-db mode sees issues created in normal mode
+ */
+export async function flushToJsonl(config: BeadsConfig): Promise<void> {
+  const command = new Deno.Command("bd", {
+    args: ["sync", "--flush-only"],
+    cwd: config.workingDirectory,
+    stdout: "piped",
+    stderr: "piped",
+  });
+
+  const { code, stderr } = await command.output();
+
+  if (code !== 0) {
+    const errorText = new TextDecoder().decode(stderr);
+    throw new Error(`bd sync --flush-only failed: ${errorText}`);
+  }
+}
+
+/**
  * Get list of ready (unblocked) issues
  */
 export async function getReadyWork(
   config: BeadsConfig,
 ): Promise<BeadsIssue[]> {
+  await flushToJsonl(config);
   const output = await runBdCommand(["ready"], config);
   if (!output.trim()) {
     return [];
