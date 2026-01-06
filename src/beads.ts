@@ -159,3 +159,23 @@ export async function getIssuesByStatus(
   }
   return JSON.parse(output);
 }
+
+/**
+ * Sync issues with remote
+ * Pulls latest changes from git remote and updates local issue state
+ */
+export async function syncIssues(config: BeadsConfig): Promise<void> {
+  const command = new Deno.Command("bd", {
+    args: ["sync"],
+    cwd: config.workingDirectory,
+    stdout: "piped",
+    stderr: "piped",
+  });
+
+  const { code, stderr } = await command.output();
+
+  if (code !== 0) {
+    const errorText = new TextDecoder().decode(stderr);
+    throw new Error(`bd sync failed: ${errorText}`);
+  }
+}

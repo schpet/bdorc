@@ -14,7 +14,7 @@ import {
 } from "./src/gates.ts";
 import { runOrchestrator } from "./src/mod.ts";
 import { installSignalHandlers } from "./src/process-manager.ts";
-import { systemLog, systemWarn } from "./src/system-log.ts";
+import { printBanner, systemLog, systemWarn } from "./src/system-log.ts";
 
 /**
  * Check for in_progress issues from a previous run and prompt user to resume
@@ -40,12 +40,30 @@ const PROJECT_TYPE_GATES: Record<string, string[]> = {
   other: [],
 };
 
+const EXAMPLE_CONFIG_COMMENT = `# All available ebo configuration options:
+#
+# gates = [
+#   "deno fmt --check",
+#   "deno lint",
+#   "deno test -A",
+# ]
+#
+# [vcs]
+# enabled = true
+# command = "jj"
+#
+# [[reviews]]
+# prompt = "Check for security vulnerabilities"
+
+`;
+
 function generateTomlConfig(options: {
   gates: string[];
   useVcs: boolean;
   reviews: string[];
 }): string {
-  let toml = `gates = [\n`;
+  let toml = EXAMPLE_CONFIG_COMMENT;
+  toml += `gates = [\n`;
   for (const gate of options.gates) {
     toml += `  "${gate}",\n`;
   }
@@ -72,10 +90,20 @@ const initCommand = new Command()
     });
 
     if (initBeads) {
-      console.log("Initializing beads...");
+      const prefix = await Input.prompt({
+        message: "Issue prefix (leave empty for default):",
+      });
+
+      const bdArgs = ["init", "--stealth"];
+      if (prefix.trim()) {
+        bdArgs.push("--prefix", prefix.trim());
+        console.log(`Initializing beads with prefix ${prefix.trim()}...`);
+      } else {
+        console.log("Initializing beads...");
+      }
 
       const bdInit = new Deno.Command("bd", {
-        args: ["init", "--stealth"],
+        args: bdArgs,
         stdout: "inherit",
         stderr: "inherit",
       });
@@ -224,7 +252,11 @@ const command = new Command()
       Deno.exit(1);
     }
 
-    systemLog("ebo - Beads orchestrator for Claude Code");
+    if (!options.quiet) {
+      printBanner();
+    } else {
+      systemLog("ebo - Beads orchestrator for Claude Code");
+    }
 
     // Run initial gate check
     const gatesConfig = await loadGatesConfig(Deno.cwd());
