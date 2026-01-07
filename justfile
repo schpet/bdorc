@@ -3,6 +3,28 @@
 default:
 	just -l -u
 
+# tags the newest release in the changelog
+release:
+    deno check **/*.ts
+    deno fmt --check
+    deno lint
+    deno task test
+
+    svbump write "$(changelog version latest)" version deno.json
+
+    git add deno.json
+    git commit -m "chore: Release easy-bead-oven version $(svbump read version deno.json)"
+    git tag "v$(svbump read version deno.json)"
+
+    @echo "released v$(svbump read version deno.json)"
+    @echo "run 'git push && git push --tags' to publish"
+
+# tags a container release (triggers .github/workflows/container.yml)
+release-container:
+    git tag "container-v$(changelog version latest)"
+    @echo "tagged container-v$(changelog version latest)"
+    @echo "run 'git push --tags' to trigger container build"
+
 install:
     deno install -c ./deno.json -A -g -f -n ebo ./main.ts
 
