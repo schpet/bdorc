@@ -16,14 +16,14 @@ release:
     git commit -m "chore: Release easy-bead-oven version $(svbump read version deno.json)"
     git tag "v$(svbump read version deno.json)"
 
+    git push --tags
     @echo "released v$(svbump read version deno.json)"
-    @echo "run 'git push && git push --tags' to publish"
 
 # tags a container release (triggers .github/workflows/container.yml)
 release-container:
     git tag "container-v$(changelog version latest)"
-    @echo "tagged container-v$(changelog version latest)"
-    @echo "run 'git push --tags' to trigger container build"
+    git push --tags
+    @echo "released container-v$(changelog version latest)"
 
 install:
     deno install -c ./deno.json -A -g -f -n ebo ./main.ts

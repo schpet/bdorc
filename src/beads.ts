@@ -71,6 +71,7 @@ export async function flushToJsonl(config: BeadsConfig): Promise<void> {
 
 /**
  * Get list of ready (unblocked) issues
+ * Excludes epics since they are containers for child issues, not directly workable
  */
 export async function getReadyWork(
   config: BeadsConfig,
@@ -80,7 +81,8 @@ export async function getReadyWork(
   if (!output.trim()) {
     return [];
   }
-  return JSON.parse(output);
+  const issues: BeadsIssue[] = JSON.parse(output);
+  return issues.filter((issue) => issue.issue_type !== "epic");
 }
 
 /**
@@ -148,6 +150,7 @@ export async function addNotes(
 
 /**
  * Get issues by status
+ * Excludes epics since they are containers for child issues, not directly workable
  */
 export async function getIssuesByStatus(
   status: "open" | "in_progress" | "blocked" | "closed",
@@ -157,7 +160,8 @@ export async function getIssuesByStatus(
   if (!output.trim()) {
     return [];
   }
-  return JSON.parse(output);
+  const issues: BeadsIssue[] = JSON.parse(output);
+  return issues.filter((issue) => issue.issue_type !== "epic");
 }
 
 /**
