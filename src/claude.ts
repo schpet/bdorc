@@ -268,6 +268,8 @@ export function buildIssuePrompt(issue: {
     "- Follow existing code patterns",
     "- Ensure code compiles and tests pass",
     "- Keep changes focused on this issue",
+    "- Do NOT commit code - commits are handled automatically",
+    "- If you discover unrelated issues, file them with `bd create` for later",
   );
 
   return parts.join("\n");
@@ -319,6 +321,8 @@ export function buildResumePrompt(issue: {
     "- Follow existing code patterns",
     "- Ensure code compiles and tests pass",
     "- Keep changes focused on this issue",
+    "- Do NOT commit code - commits are handled automatically",
+    "- If you discover unrelated issues, file them with `bd create` for later",
   );
 
   return parts.join("\n");
@@ -354,6 +358,8 @@ export function buildFixPrompt(
     "- Fix the issues shown above",
     "- Run the failing commands to verify fixes work",
     "- Keep changes minimal and focused on fixing the failures",
+    "- Do NOT commit code - commits are handled automatically",
+    "- If you discover unrelated issues, file them with `bd create` for later",
   );
 
   return parts.join("\n");
