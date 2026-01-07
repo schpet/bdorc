@@ -15,6 +15,7 @@ export async function checkClaudeAuth(): Promise<boolean> {
     args: ["-p", "hi"],
     stdout: "piped",
     stderr: "piped",
+    env: { ...Deno.env.toObject(), JJAGENT_DISABLE: "1" },
   });
 
   try {
@@ -92,6 +93,7 @@ async function runClaudeCodeStreaming(
     cwd,
     stdout: "piped",
     stderr: "piped",
+    env: { ...Deno.env.toObject(), JJAGENT_DISABLE: "1" },
   });
 
   const process = command.spawn();
