@@ -251,11 +251,15 @@ const helpCommand = new Command()
       }
 
       if (matches.length === 0) {
-        console.error(`No documentation found matching keyword: ${options.keyword}`);
+        console.error(
+          `No documentation found matching keyword: ${options.keyword}`,
+        );
         console.error("\nAvailable docs:");
         for await (const entry of Deno.readDir(docsDir)) {
           if (entry.isFile && entry.name.endsWith(".md")) {
-            console.error(`  - ${entry.name.replace(".md", "").replace(/-/g, " ")}`);
+            console.error(
+              `  - ${entry.name.replace(".md", "").replace(/-/g, " ")}`,
+            );
           }
         }
         Deno.exit(1);
