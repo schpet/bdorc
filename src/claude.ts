@@ -2,8 +2,38 @@
  * Claude Code runner module - execute claude CLI with --print flag
  */
 
-import { dim, green } from "@std/fmt/colors";
+import { dim, green, red } from "@std/fmt/colors";
 import { registerProcess, unregisterProcess } from "./process-manager.ts";
+
+/**
+ * Verify Claude is authenticated and working by running a simple prompt.
+ * Returns true if Claude is working, false otherwise.
+ * Prints error output if authentication fails.
+ */
+export async function checkClaudeAuth(): Promise<boolean> {
+  const command = new Deno.Command("claude", {
+    args: ["-p", "hi"],
+    stdout: "piped",
+    stderr: "piped",
+  });
+
+  try {
+    const { code, stderr } = await command.output();
+
+    if (code !== 0) {
+      const errorText = new TextDecoder().decode(stderr);
+      console.error(red("Claude authentication check failed:"));
+      console.error(errorText);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error(red("Failed to run claude:"));
+    console.error(error instanceof Error ? error.message : String(error));
+    return false;
+  }
+}
 
 export interface ClaudeResult {
   success: boolean;

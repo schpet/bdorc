@@ -147,6 +147,14 @@ command = "jj"
 [Apple Container](https://github.com/apple/container) is a lightweight container
 runtime for macOS.
 
+### Builder Setup
+
+Ensure the builder has enough resources for installing dependencies:
+
+```bash
+container builder start --cpus 6 --memory 8g
+```
+
 ### Build
 
 ```bash
@@ -157,15 +165,13 @@ container build --tag my-agent .
 
 ```bash
 # Interactive shell
-container run -it --rm -v $(pwd):/workspace my-agent bash
+container run -it --rm -m 4g -v $(pwd):/workspace my-agent bash
 
 # Run ebo directly
-container run -it --rm \
-  -v $(pwd):/workspace \
-  my-agent ebo --dangerously-skip-permissions
+container run -it --rm -m 4g -v $(pwd):/workspace my-agent ebo --dangerously-skip-permissions
 
 # Limit iterations
-container run -it --rm \
+container run -it --rm -m 4g \
   -v $(pwd):/workspace \
   my-agent ebo --dangerously-skip-permissions --max-iterations 5
 ```

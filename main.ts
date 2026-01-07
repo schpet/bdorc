@@ -5,7 +5,11 @@
 import { Command } from "@cliffy/command";
 import { Confirm, Input, Select } from "@cliffy/prompt";
 import { type BeadsIssue, getIssuesByStatus } from "./src/beads.ts";
-import { buildFixPrompt, runClaudeCode } from "./src/claude.ts";
+import {
+  buildFixPrompt,
+  checkClaudeAuth,
+  runClaudeCode,
+} from "./src/claude.ts";
 import { loadConfig } from "./src/config.ts";
 import {
   hasGatesConfigured,
@@ -226,6 +230,50 @@ const creatorPromptCommand = new Command()
     );
   });
 
+const helpCommand = new Command()
+  .name("help")
+  .description("Display documentation by keyword")
+  .option("-k, --keyword <keyword:string>", "Keyword to search for in docs", {
+    required: true,
+  })
+  .action(async (options) => {
+    const docsDir = new URL("./docs", import.meta.url).pathname;
+
+    try {
+      const matches: string[] = [];
+      for await (const entry of Deno.readDir(docsDir)) {
+        if (
+          entry.isFile && entry.name.endsWith(".md") &&
+          entry.name.toLowerCase().includes(options.keyword.toLowerCase())
+        ) {
+          matches.push(entry.name);
+        }
+      }
+
+      if (matches.length === 0) {
+        console.error(`No documentation found matching keyword: ${options.keyword}`);
+        console.error("\nAvailable docs:");
+        for await (const entry of Deno.readDir(docsDir)) {
+          if (entry.isFile && entry.name.endsWith(".md")) {
+            console.error(`  - ${entry.name.replace(".md", "").replace(/-/g, " ")}`);
+          }
+        }
+        Deno.exit(1);
+      }
+
+      for (const match of matches) {
+        const content = await Deno.readTextFile(`${docsDir}/${match}`);
+        console.log(content);
+      }
+    } catch (error) {
+      if (error instanceof Deno.errors.NotFound) {
+        console.error("Documentation directory not found.");
+        Deno.exit(1);
+      }
+      throw error;
+    }
+  });
+
 const command = new Command()
   .name("ebo")
   .version("0.1.0")
@@ -256,6 +304,14 @@ const command = new Command()
       printBanner();
     } else {
       systemLog("ebo - Beads orchestrator for Claude Code");
+    }
+
+    // Verify Claude is authenticated before proceeding
+    systemLog("Checking Claude authentication...");
+    const claudeOk = await checkClaudeAuth();
+    if (!claudeOk) {
+      console.error("Exiting due to Claude authentication failure.");
+      Deno.exit(1);
     }
 
     // Run initial gate check
@@ -339,7 +395,8 @@ const command = new Command()
     }
   })
   .command("init", initCommand)
-  .command("creator-prompt", creatorPromptCommand);
+  .command("creator-prompt", creatorPromptCommand)
+  .command("help", helpCommand);
 
 if (import.meta.main) {
   installSignalHandlers();

@@ -74,6 +74,9 @@ ENV PATH="/home/agent/.local/bin:${PATH}"
 RUN go install github.com/steveyegge/beads/cmd/bd@latest
 ENV PATH="${PATH}:/home/agent/go/bin"
 
+# Set up beads plugin for Claude Code
+RUN bd setup claude
+
 # Install ebo for agent user
 RUN deno install -A -g -f -n ebo jsr:@schpet/easy-bead-oven
 
