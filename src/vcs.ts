@@ -7,7 +7,7 @@ import { loadConfig } from "./config.ts";
 
 export interface VcsConfig {
   enabled: boolean;
-  command: "jj";
+  command: "jj" | "git";
 }
 
 export interface VcsResult {
@@ -36,9 +36,11 @@ export async function loadVcsConfig(
 
   const vcs = config.vcs as Record<string, unknown>;
 
+  const command = vcs.command === "git" ? "git" : "jj";
+
   return {
     enabled: typeof vcs.enabled === "boolean" ? vcs.enabled : true,
-    command: "jj",
+    command,
   };
 }
 
@@ -72,6 +74,9 @@ export async function commitWork(
 
   const message = parts.join("\n");
 
+  if (config.command === "git") {
+    return await commitWithGit(message, workingDirectory);
+  }
   return await commitWithJj(message, workingDirectory);
 }
 
@@ -79,6 +84,16 @@ export async function commitWork(
  * Check if the working copy has uncommitted changes
  */
 export async function hasWorkingCopyChanges(
+  workingDirectory: string,
+  vcsCommand: "jj" | "git" = "jj",
+): Promise<boolean> {
+  if (vcsCommand === "git") {
+    return await hasWorkingCopyChangesGit(workingDirectory);
+  }
+  return await hasWorkingCopyChangesJj(workingDirectory);
+}
+
+async function hasWorkingCopyChangesJj(
   workingDirectory: string,
 ): Promise<boolean> {
   const command = new Deno.Command("jj", {
@@ -99,10 +114,31 @@ export async function hasWorkingCopyChanges(
   return output.trim().length > 0;
 }
 
+async function hasWorkingCopyChangesGit(
+  workingDirectory: string,
+): Promise<boolean> {
+  const command = new Deno.Command("git", {
+    args: ["status", "--porcelain"],
+    cwd: workingDirectory,
+    stdout: "piped",
+    stderr: "piped",
+  });
+
+  const { code, stdout } = await command.output();
+
+  if (code !== 0) {
+    // If git status fails, assume there might be changes to be safe
+    return true;
+  }
+
+  const output = new TextDecoder().decode(stdout);
+  return output.trim().length > 0;
+}
+
 /**
  * Ensure the working copy is clean before starting work on an issue.
- * If there are uncommitted changes, run `jj new` to create a fresh change,
- * effectively isolating the existing work as its own change.
+ * For jj: run `jj new` to create a fresh change, isolating existing work.
+ * For git: stash any uncommitted changes to start fresh.
  */
 export async function ensureCleanWorkingCopy(
   config: VcsConfig,
@@ -112,7 +148,16 @@ export async function ensureCleanWorkingCopy(
     return { success: true, message: "VCS disabled, skipping pre-work check" };
   }
 
-  const hasChanges = await hasWorkingCopyChanges(workingDirectory);
+  if (config.command === "git") {
+    return await ensureCleanWorkingCopyGit(workingDirectory);
+  }
+  return await ensureCleanWorkingCopyJj(workingDirectory);
+}
+
+async function ensureCleanWorkingCopyJj(
+  workingDirectory: string,
+): Promise<VcsResult> {
+  const hasChanges = await hasWorkingCopyChangesJj(workingDirectory);
 
   if (!hasChanges) {
     return { success: true, message: "Working copy is clean" };
@@ -143,6 +188,41 @@ export async function ensureCleanWorkingCopy(
   };
 }
 
+async function ensureCleanWorkingCopyGit(
+  workingDirectory: string,
+): Promise<VcsResult> {
+  const hasChanges = await hasWorkingCopyChangesGit(workingDirectory);
+
+  if (!hasChanges) {
+    return { success: true, message: "Working copy is clean" };
+  }
+
+  // Stash any uncommitted changes (including untracked files)
+  const process = new Deno.Command("git", {
+    args: ["stash", "push", "-u", "-m", "ebo: stashed before issue work"],
+    cwd: workingDirectory,
+    stdout: "piped",
+    stderr: "piped",
+  });
+
+  const { code, stdout, stderr } = await process.output();
+  const output = new TextDecoder().decode(stdout);
+  const error = new TextDecoder().decode(stderr);
+
+  if (code === 0) {
+    return {
+      success: true,
+      message: "Stashed pre-existing changes",
+    };
+  }
+
+  return {
+    success: false,
+    message: "Failed to stash changes",
+    error: error || output,
+  };
+}
+
 /**
  * Commit using jj
  */
@@ -151,7 +231,7 @@ async function commitWithJj(
   workingDirectory: string,
 ): Promise<VcsResult> {
   // Check for changes before attempting to commit
-  const hasChanges = await hasWorkingCopyChanges(workingDirectory);
+  const hasChanges = await hasWorkingCopyChangesJj(workingDirectory);
   if (!hasChanges) {
     return { success: true, message: "No changes to commit" };
   }
@@ -164,6 +244,60 @@ async function commitWithJj(
   });
 
   const { code, stdout, stderr } = await process.output();
+  const output = new TextDecoder().decode(stdout);
+  const error = new TextDecoder().decode(stderr);
+
+  if (code === 0) {
+    return { success: true, message: output || "Committed successfully" };
+  }
+
+  return {
+    success: false,
+    message: "Commit failed",
+    error: error || output,
+  };
+}
+
+/**
+ * Commit using git
+ */
+async function commitWithGit(
+  message: string,
+  workingDirectory: string,
+): Promise<VcsResult> {
+  // Check for changes before attempting to commit
+  const hasChanges = await hasWorkingCopyChangesGit(workingDirectory);
+  if (!hasChanges) {
+    return { success: true, message: "No changes to commit" };
+  }
+
+  // Stage all changes
+  const addProcess = new Deno.Command("git", {
+    args: ["add", "-A"],
+    cwd: workingDirectory,
+    stdout: "piped",
+    stderr: "piped",
+  });
+
+  const addResult = await addProcess.output();
+  if (addResult.code !== 0) {
+    const error = new TextDecoder().decode(addResult.stderr);
+    return {
+      success: false,
+      message: "Failed to stage changes",
+      error,
+    };
+  }
+
+  // Commit
+  const commitProcess = new Deno.Command("git", {
+    args: ["commit", "-m", message],
+    cwd: workingDirectory,
+    stdout: "piped",
+    stderr: "piped",
+  });
+
+  const { code, stdout, stderr } = await commitProcess.output();
   const output = new TextDecoder().decode(stdout);
   const error = new TextDecoder().decode(stderr);
 

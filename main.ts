@@ -53,8 +53,7 @@ const EXAMPLE_CONFIG_COMMENT = `# All available ebo configuration options:
 # ]
 #
 # [vcs]
-# enabled = true
-# command = "jj"
+# command = "jj"  # or "git"
 #
 # [[reviews]]
 # prompt = "Check for security vulnerabilities"
@@ -63,7 +62,7 @@ const EXAMPLE_CONFIG_COMMENT = `# All available ebo configuration options:
 
 function generateTomlConfig(options: {
   gates: string[];
-  useVcs: boolean;
+  vcsCommand: "jj" | "git" | null;
   reviews: string[];
 }): string {
   let toml = EXAMPLE_CONFIG_COMMENT;
@@ -73,8 +72,8 @@ function generateTomlConfig(options: {
   }
   toml += `]\n`;
 
-  if (options.useVcs) {
-    toml += `\n[vcs]\ncommand = "jj"\n`;
+  if (options.vcsCommand) {
+    toml += `\n[vcs]\ncommand = "${options.vcsCommand}"\n`;
   }
 
   for (const review of options.reviews) {
@@ -186,9 +185,20 @@ const initCommand = new Command()
     }
 
     const useVcs = await Confirm.prompt({
-      message: "Enable automatic commits with jj?",
+      message: "Enable automatic commits?",
       default: false,
     });
+
+    let vcsCommand: "jj" | "git" | null = null;
+    if (useVcs) {
+      vcsCommand = (await Select.prompt({
+        message: "Which version control system?",
+        options: [
+          { name: "jj (Jujutsu)", value: "jj" },
+          { name: "git", value: "git" },
+        ],
+      })) as "jj" | "git";
+    }
 
     const reviews: string[] = [];
     let addReviews = await Confirm.prompt({
@@ -207,7 +217,7 @@ const initCommand = new Command()
       });
     }
 
-    const tomlContent = generateTomlConfig({ gates, useVcs, reviews });
+    const tomlContent = generateTomlConfig({ gates, vcsCommand, reviews });
 
     try {
       await Deno.mkdir(`${Deno.cwd()}/.config`, { recursive: true });

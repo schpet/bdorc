@@ -9,10 +9,11 @@ RUN apt-get update && apt-get install -y \
     ripgrep \
     unzip \
     sudo \
+    fish \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user (required for claude code --dangerously-skip-permissions)
-RUN useradd -m -s /bin/bash agent && \
+RUN useradd -m -s /usr/bin/fish agent && \
     echo "agent ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Install Go 1.24 (required for beads)
@@ -66,9 +67,13 @@ RUN mkdir -p /home/agent/.claude && \
   }\n\
 }' > /home/agent/.claude/settings.local.json
 
-# Install claude code (native install - no Node.js required)
-RUN curl -fsSL https://claude.ai/install.sh | bash
-ENV PATH="/home/agent/.local/bin:${PATH}"
+# Install Node.js and claude code
+USER root
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/* && \
+    npm install -g @anthropic-ai/claude-code
+USER agent
 
 # Install beads (bd) for agent user
 RUN go install github.com/steveyegge/beads/cmd/bd@latest
@@ -88,5 +93,12 @@ ENV JJ_EMAIL="agent@local"
 # The justfile sync-git-ignore copies the host's global gitignore to /claude/gitignore
 RUN mkdir -p /home/agent/.config/git && \
     ln -s /claude/gitignore /home/agent/.config/git/ignore
+
+# Install starship prompt
+RUN curl -sS https://starship.rs/install.sh | sh -s -- --yes
+
+# Configure fish to use starship
+RUN mkdir -p /home/agent/.config/fish && \
+    echo 'starship init fish | source' >> /home/agent/.config/fish/config.fish
 
 WORKDIR /workspace

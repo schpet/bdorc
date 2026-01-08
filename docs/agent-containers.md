@@ -199,6 +199,62 @@ For projects with dependencies, consider mounting cache directories:
 -v bundle_cache:/usr/local/bundle
 ```
 
+### Persisting Claude Credentials
+
+Containers are ephemeral—when using `--rm`, any credentials stored inside are
+lost when the container exits. To persist Claude login credentials between runs,
+use a named volume and set `CLAUDE_CONFIG_DIR`.
+
+**Create a named volume:**
+
+```bash
+container volume create my-project-claude-config
+```
+
+**Mount it when running:**
+
+```bash
+container run --rm -m 4g \
+  -v $(pwd):/workspace \
+  -v my-project-claude-config:/claude \
+  -e CLAUDE_CONFIG_DIR=/claude \
+  my-agent bash
+```
+
+On first run, login with `claude` inside the container. Credentials are stored
+in the named volume and persist across container restarts.
+
+**Example justfile setup:**
+
+```just
+config_volume := "my-project-claude-config"
+
+_run := "container run --rm -m 4g -v $(pwd):/workspace -v " + config_volume + ":/claude -e CLAUDE_CONFIG_DIR=/claude"
+
+init:
+    container volume create {{config_volume}} 2>/dev/null || true
+
+shell: init
+    {{_run}} -it my-agent bash
+
+claude: init
+    {{_run}} -it my-agent claude
+
+ebo: init
+    {{_run}} my-agent ebo --dangerously-skip-permissions
+```
+
+**Managing volumes:**
+
+```bash
+container volume list                    # List all volumes
+container volume inspect my-project-claude-config  # View volume details
+container volume rm my-project-claude-config       # Delete volume (clears credentials)
+```
+
+This keeps credentials isolated per-project and separate from your host
+`~/.claude` directory.
+
 ### Cleanup
 
 Remove stopped containers:
