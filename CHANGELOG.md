@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- beads status updates no longer create orphaned undescribed commits
+
 ### Added
 
 - retry logic for transient Claude failures with exponential backoff

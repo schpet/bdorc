@@ -25,7 +25,7 @@ import {
   runAllReviews,
 } from "./reviews.ts";
 import { getRetryDelay, isTransientClaudeError } from "./retry.ts";
-import { commitWork, ensureCleanWorkingCopy, loadVcsConfig } from "./vcs.ts";
+import { commitWork, loadVcsConfig } from "./vcs.ts";
 import { systemLog, systemWarn } from "./system-log.ts";
 import { createSleepInhibitor } from "./sleep-inhibitor.ts";
 import { bold, cyan } from "@std/fmt/colors";
@@ -183,37 +183,6 @@ export async function runOrchestrator(
     }
 
     sleepInhibitor.enable();
-
-    // Ensure clean working copy before starting work
-    const cleanResult = await ensureCleanWorkingCopy(
-      vcsConfig,
-      config.workingDirectory,
-    );
-    if (!cleanResult.success) {
-      if (verbose) {
-        systemLog(
-          `Failed to ensure clean working copy: ${
-            cleanResult.error || cleanResult.message
-          }`,
-        );
-      }
-      await addNotes(
-        issue.id,
-        `Failed to ensure clean working copy: ${
-          cleanResult.error || cleanResult.message
-        }`,
-        beadsConfig,
-      );
-      failed.push(issue.id);
-      continue;
-    }
-    if (
-      cleanResult.message === "Created new change to isolate pre-existing work"
-    ) {
-      if (verbose) {
-        systemLog("Created new jj change to isolate pre-existing work");
-      }
-    }
 
     // Build prompt and run Claude Code with retry logic for transient failures
     const prompt = isResume
