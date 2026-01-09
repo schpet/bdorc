@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- retry logic for transient Claude failures with exponential backoff
+
 ## [0.2.1] - 2026-01-09
 
 ### Fixed

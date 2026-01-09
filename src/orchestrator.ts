@@ -24,6 +24,7 @@ import {
   loadReviewsConfig,
   runAllReviews,
 } from "./reviews.ts";
+import { getRetryDelay, isTransientClaudeError } from "./retry.ts";
 import { commitWork, ensureCleanWorkingCopy, loadVcsConfig } from "./vcs.ts";
 import { systemLog, systemWarn } from "./system-log.ts";
 import { createSleepInhibitor } from "./sleep-inhibitor.ts";
@@ -32,6 +33,7 @@ import { bold, cyan } from "@std/fmt/colors";
 export interface OrchestratorConfig {
   workingDirectory: string;
   maxIterations?: number;
+  maxRetries?: number;
   model?: string;
   maxTurns?: number;
   verbose?: boolean;
@@ -64,6 +66,7 @@ export async function runOrchestrator(
   };
 
   const maxIterations = config.maxIterations ?? 100;
+  const maxRetries = config.maxRetries ?? 3;
   const verbose = config.verbose ?? true;
   const pollIntervalMs = 1000;
 
@@ -212,25 +215,69 @@ export async function runOrchestrator(
       }
     }
 
-    // Build prompt and run Claude Code
+    // Build prompt and run Claude Code with retry logic for transient failures
     const prompt = isResume
       ? buildResumePrompt(issue)
       : buildIssuePrompt(issue);
-    if (verbose) {
-      systemLog("Running Claude Code...");
+
+    let claudeResult;
+    let claudeAttempt = 0;
+    let lastError = "";
+
+    while (claudeAttempt < maxRetries) {
+      if (verbose) {
+        if (claudeAttempt === 0) {
+          systemLog("Running Claude Code...");
+        } else {
+          systemLog(
+            `Retrying Claude Code (attempt ${
+              claudeAttempt + 1
+            }/${maxRetries})...`,
+          );
+        }
+      }
+
+      claudeResult = await runClaudeCode(prompt, claudeConfig);
+
+      if (claudeResult.success) {
+        break;
+      }
+
+      lastError = claudeResult.error;
+
+      // Check if error is transient (crash, network, rate limit) vs permanent
+      if (isTransientClaudeError(lastError)) {
+        claudeAttempt++;
+        if (claudeAttempt < maxRetries) {
+          const delayMs = getRetryDelay(claudeAttempt - 1);
+          if (verbose) {
+            systemLog(
+              `Claude crashed (transient error), retrying in ${
+                Math.round(delayMs / 1000)
+              }s...`,
+            );
+            systemLog(`Error: ${lastError.slice(0, 200)}`);
+          }
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      } else {
+        // Non-transient error, don't retry
+        break;
+      }
     }
 
-    const claudeResult = await runClaudeCode(prompt, claudeConfig);
-
-    if (!claudeResult.success) {
+    if (!claudeResult!.success) {
       if (verbose) {
-        systemLog(`Claude Code failed: ${claudeResult.error}`);
+        systemLog(`Claude Code failed: ${lastError}`);
+        if (claudeAttempt > 0) {
+          systemLog(`Failed after ${claudeAttempt} retry attempt(s)`);
+        }
       }
       await addNotes(
         issue.id,
-        `Claude Code failed (exit ${claudeResult.exitCode}): ${
-          claudeResult.error.slice(0, 500)
-        }`,
+        `Claude Code failed (exit ${claudeResult!.exitCode}): ${
+          lastError.slice(0, 500)
+        }${claudeAttempt > 0 ? ` (after ${claudeAttempt} retries)` : ""}`,
         beadsConfig,
       );
       failed.push(issue.id);
@@ -288,21 +335,58 @@ export async function runOrchestrator(
         .map((r) => ({ name: r.name, output: r.output, error: r.error }));
 
       const fixPrompt = buildFixPrompt(issue.id, failures);
-      if (verbose) {
-        systemLog("Running Claude Code to fix failures...");
+
+      // Run fix with retry logic for transient errors
+      let fixResult;
+      let fixAttempt = 0;
+      let fixLastError = "";
+
+      while (fixAttempt < maxRetries) {
+        if (verbose) {
+          if (fixAttempt === 0) {
+            systemLog("Running Claude Code to fix failures...");
+          } else {
+            systemLog(
+              `Retrying fix (attempt ${fixAttempt + 1}/${maxRetries})...`,
+            );
+          }
+        }
+
+        fixResult = await runClaudeCode(fixPrompt, claudeConfig);
+
+        if (fixResult.success) {
+          break;
+        }
+
+        fixLastError = fixResult.error;
+
+        if (isTransientClaudeError(fixLastError)) {
+          fixAttempt++;
+          if (fixAttempt < maxRetries) {
+            const delayMs = getRetryDelay(fixAttempt - 1);
+            if (verbose) {
+              systemLog(
+                `Fix crashed (transient error), retrying in ${
+                  Math.round(delayMs / 1000)
+                }s...`,
+              );
+            }
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+          }
+        } else {
+          break;
+        }
       }
 
-      const fixResult = await runClaudeCode(fixPrompt, claudeConfig);
-
-      if (!fixResult.success) {
+      if (!fixResult!.success) {
         if (verbose) {
-          systemLog(`Claude Code fix failed: ${fixResult.error}`);
+          systemLog(`Claude Code fix failed: ${fixLastError}`);
         }
         await addNotes(
           issue.id,
-          `Fix attempt failed (exit ${fixResult.exitCode}): ${
-            fixResult.error.slice(0, 500)
-          }`,
+          `Fix attempt failed (exit ${fixResult!.exitCode}): ${
+            fixLastError.slice(0, 500)
+          }${fixAttempt > 0 ? ` (after ${fixAttempt} retries)` : ""}`,
           beadsConfig,
         );
         // Keep in_progress for next iteration to retry
