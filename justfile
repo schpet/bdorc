@@ -17,6 +17,8 @@ release:
     git tag "v$(svbump read version deno.json)"
 
     git push --tags
+    jj bookmark move main --to @-
+    jj git push --bookmark main
     @echo "released v$(svbump read version deno.json)"
 
 # tags a container release (triggers .github/workflows/container.yml)
