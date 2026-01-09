@@ -4,6 +4,7 @@
 
 import { Command } from "@cliffy/command";
 import { Confirm, Input, Select } from "@cliffy/prompt";
+import denoConfig from "./deno.json" with { type: "json" };
 import { type BeadsIssue, getIssuesByStatus } from "./src/beads.ts";
 import {
   buildFixPrompt,
@@ -290,7 +291,7 @@ const helpCommand = new Command()
 
 const command = new Command()
   .name("ebo")
-  .version("0.1.0")
+  .version(denoConfig.version)
   .description("Beads orchestrator for Claude Code")
   .option("-n, --max-iterations <count:number>", "Maximum loop iterations", {
     default: 100,
